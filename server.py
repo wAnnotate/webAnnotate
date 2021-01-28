@@ -46,7 +46,7 @@ def variants_reduction():
 
 @app.route("/")
 def index():
-    return Response(response="Hello! This is Annotator")
+    return render_template("index.html")
 
 def getGeneInfo(gene_id,table):
     data = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
