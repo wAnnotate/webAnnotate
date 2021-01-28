@@ -7,3 +7,6 @@ MarkupSafe==1.1.1
 Werkzeug==1.0.1
 passlib==1.7.1
 psycopg2-binary>=2.7
+PyVCF>=0.6.8
+beautifulsoup4>=4.9.3
+requests>=2.25.0
