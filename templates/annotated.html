@@ -10,7 +10,7 @@
 <script src="https://cdn.datatables.net/rowreorder/1.2.7/js/dataTables.rowReorder.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.2.6/js/dataTables.responsive.min.js"></script>
 <script defer>
-    $("#table").dataTable({
+    setTimeout(()=>$("#table").dataTable({
              dom: "<'row'<'col-sm-3'l><'col-sm-3'f><'col-sm-6'p>>" +
                  "<'row'<'col-sm-12'tr>>" +
                  "<'row'<'col-sm-5'i><'col-sm-7'p>>",
@@ -34,45 +34,21 @@
              },
              initComplete: function () {
                  let count = 0;
-                 let cols = nofilter ? [0, 1, 2, 3, 4, 6, 8,9,10] : [0, 1, 2, 3, 4]; 
+                 let cols = []; 
                  this.api().columns(cols).every(function () {
                      var column = this;
                      var select = $(`<select id="select${count++}"><option value=""></option></select>`)
                          .appendTo($(column.header()))
                          .on('change', function () {
                              var val = $.fn.dataTable.util.escapeRegex($(this).val());
-                             console.log(`<option selected="selected" value="${val}">${val}</option>`);
-                             if ($(this)[0].outerHTML.includes("select0") || $(this)[0].outerHTML.includes("select1") || $(this)[0].outerHTML.includes("select2"))
-                                 column.search('isim:' + val, true, false).draw();
-                             else
-                                 column.search(val ? '^' + val + '$' : '', true, false).draw();
+                             column.search(val ? '^' + val + '$' : '', true, false).draw();
                          });
                      column.data().unique().sort().each(d => {
-                         if (d.includes("select")) {
-                             d.split("value=\"").map(data => data.split("\"")[0]).forEach(split => {
-                                 if (!select[0].outerHTML.includes(split) && !split.includes("select"))
-                                     select.append('<option value="' + split + '">' + split + '</option>');
-                             })
-                         }
-                         else if (d.includes("textarea")) {
-                             let data = d.split('>')[1].split('<')[0];
-                             if (!select[0].outerHTML.includes(data) && data)
-                                 select.append('<option value="' + data + '">' + data + '</option>');
-                         }
-                         else if (d.includes("</p>")) {
-                             let data = d.split('<p style="opacity:0;">')[1].split("</p>")[0];
-                             if (!select[0].outerHTML.includes(data) && data)
-                                 select.append('<option value="' + data + '">' + data + '</option>');
-                         }
-                         else if (d.includes("div")) {
-                             d.split("</div>").map(div => div.split(">")[1]).forEach(content => {
-                                 if (!select[0].outerHTML.includes(content) && content) select.append('<option value="' + content + '">' + content + '</option>');
-                             })
-                         }
+                            select.append('<option value="' + d + '">' + d + '</option>');
                      });
                  });
              }
-         });
+         }),2000);
 
 
 </script>
