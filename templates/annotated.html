@@ -5,7 +5,77 @@
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-    
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.22/datatables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.4/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/rowreorder/1.2.7/js/dataTables.rowReorder.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.6/js/dataTables.responsive.min.js"></script>
+<script defer>
+    $("#table").dataTable({
+             dom: "<'row'<'col-sm-3'l><'col-sm-3'f><'col-sm-6'p>>" +
+                 "<'row'<'col-sm-12'tr>>" +
+                 "<'row'<'col-sm-5'i><'col-sm-7'p>>",
+             "orderable": false,
+             "columnDefs": [
+                 {
+                     "orderable": false,
+                     "aaSorting": false,
+                     "targets": [],
+                     "class":"none"
+                 },
+                 { "type": "html-select", "targets": 0 }
+             ],
+             "iDisplayLength": 2,
+             "aLengthMenu": [[2,5, 10, 25, 50, 100, -1], [2,5, 10, 25, 50, 100, "All"]],
+             "language": {
+                 "paginate": {
+                     "previous": "geri",
+                     "next": "ileri"
+                 }
+             },
+             initComplete: function () {
+                 let count = 0;
+                 let cols = nofilter ? [0, 1, 2, 3, 4, 6, 8,9,10] : [0, 1, 2, 3, 4]; 
+                 this.api().columns(cols).every(function () {
+                     var column = this;
+                     var select = $(`<select id="select${count++}"><option value=""></option></select>`)
+                         .appendTo($(column.header()))
+                         .on('change', function () {
+                             var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                             console.log(`<option selected="selected" value="${val}">${val}</option>`);
+                             if ($(this)[0].outerHTML.includes("select0") || $(this)[0].outerHTML.includes("select1") || $(this)[0].outerHTML.includes("select2"))
+                                 column.search('isim:' + val, true, false).draw();
+                             else
+                                 column.search(val ? '^' + val + '$' : '', true, false).draw();
+                         });
+                     column.data().unique().sort().each(d => {
+                         if (d.includes("select")) {
+                             d.split("value=\"").map(data => data.split("\"")[0]).forEach(split => {
+                                 if (!select[0].outerHTML.includes(split) && !split.includes("select"))
+                                     select.append('<option value="' + split + '">' + split + '</option>');
+                             })
+                         }
+                         else if (d.includes("textarea")) {
+                             let data = d.split('>')[1].split('<')[0];
+                             if (!select[0].outerHTML.includes(data) && data)
+                                 select.append('<option value="' + data + '">' + data + '</option>');
+                         }
+                         else if (d.includes("</p>")) {
+                             let data = d.split('<p style="opacity:0;">')[1].split("</p>")[0];
+                             if (!select[0].outerHTML.includes(data) && data)
+                                 select.append('<option value="' + data + '">' + data + '</option>');
+                         }
+                         else if (d.includes("div")) {
+                             d.split("</div>").map(div => div.split(">")[1]).forEach(content => {
+                                 if (!select[0].outerHTML.includes(content) && content) select.append('<option value="' + content + '">' + content + '</option>');
+                             })
+                         }
+                     });
+                 });
+             }
+         });
+
+
+</script>
 
     </head>
     <body>
