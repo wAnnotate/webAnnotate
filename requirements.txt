@@ -11,3 +11,4 @@ PyVCF>=0.6.8
 beautifulsoup4>=4.9.3
 requests>=2.25.0
 biothings_client==0.2.3
+pyensembl==1.9.1

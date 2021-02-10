@@ -1,10 +1,10 @@
 from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory
-from perlfunc import perl5lib, perlfunc, perlreq
 import vcf
 import base64
 from io import BufferedReader, TextIOWrapper
 import bs4
 import requests
+from pyensembl import EnsemblRelease
 
 from biothings_client import get_client
 
@@ -29,42 +29,6 @@ variant_client.query('dbnsfp.genename:BTK', fields='_id')
 # Testing for variants
 
 app = Flask(__name__)
-
-
-@perlfunc
-@perlreq('modules/annotate_variation.pl')
-def annotate_variation():
-    pass
-
-
-@perlfunc
-@perlreq('modules/coding_change.pl')
-def coding_change():
-    pass
-
-
-@perlfunc
-@perlreq('modules/convert2annovar.pl')
-def convert2annovar():
-    pass
-
-
-@perlfunc
-@perlreq('modules/retrieve_seq_from_fasta.pl')
-def retrieve_seq_from_fasta():
-    pass
-
-
-@perlfunc
-@perlreq('modules/table_annovar.pl')
-def table_annovar():
-    pass
-
-
-@perlfunc
-@perlreq('modules/variants_reduction.pl')
-def variants_reduction():
-    pass
 
 
 @app.route("/")
@@ -101,6 +65,20 @@ def getGeneInfo(gene_id, table):
             table[th].append("")
 
 
+def getGeneFromLocation(dbId, chr, pos):  # Gets reference db and location of gene, returns a Gene object
+    if dbId == 77 or dbId == 76 or dbId == 75:
+        data = EnsemblRelease(dbId)
+    else:
+        return Exception("Wrong database id.")
+
+    gene = data.genes_at_locus(contig=chr, position=pos)
+
+    if not gene:
+        return Exception("Gene not found.")
+
+    return gene
+
+
 @app.route("/annotate", methods=["POST"])
 def annotate():
     file = request.files["efile"]
@@ -114,6 +92,10 @@ def annotate():
     for record in vcf_reader:
         if record.ID:
             getGeneInfo(record.ID, table)
+        else:  # No rs id
+            gene = getGeneFromLocation(77, record.CHROM, record.POS)
+            getGeneInfo(gene[0].gene_name, table)
+            # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
         tablehtml += "<th>%s</th>" % th
