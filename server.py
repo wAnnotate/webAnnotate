@@ -23,8 +23,14 @@ def index():
 
 def getGeneInfo(gene_id, table):
     data = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
-    table["summary"].insert(0, data["summary"])
-    table["entrezgene"].insert(0, '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+    if "summary" not in data:
+        table["summary"].insert(0,"No data avaliable")
+    else:
+        table["summary"].insert(0, data["summary"])
+    if "entrezgene" not in data:
+        table["entrezgene"].insert(0,"No data avaliable")
+    else:
+        table["entrezgene"].insert(0, '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                % (data["entrezgene"], data["entrezgene"]))
     clinical_data = "no data"
     if "clingen" in data and "clinical_validity" in data["clingen"]:
@@ -86,6 +92,7 @@ def annotate():
     print(type(file))
     vcf_reader = vcf.Reader(file)
     table = {
+        "rowid":[],
         "gene_id": [],
         "gene_name": [],
         "biotype": [],
@@ -98,31 +105,25 @@ def annotate():
         "clingen": [],
         "entrezgene": [],
     }
+    count = 0
     for record in vcf_reader:
         try:
             gene = getGeneFromLocation(record.CHROM, record.POS)
             getGeneInfo(gene[0].gene_id, table)
-            table["gene_id"].append(gene[0].gene_id)
-            table["gene_name"].append(gene[0].gene_name)
-            table["biotype"].append(gene[0].biotype)
-            table["contig"].append(gene[0].contig)
-            table["start"].append(gene[0].start)
-            table["end"].append(gene[0].end)
-            table["strand"].append(gene[0].strand)
-            table["genome"].append(gene[0].genome)
-            print("Successful adding.")
+            gene_dict = gene[0].__dict__
+            for key in table.keys():
+                if key in gene_dict.keys() and key not in ["summart,clingen,entrezgene","rowid"]:
+                    table[key].insert(0,gene_dict[key])
+                    print("Successful adding.")
+                elif key not in ["summart,clingen,entrezgene","rowid"]:
+                    table[key].append("No data available")
+            table["rowid"].insert(0,count)
         except:
-            table["gene_id"].append("No data available")
-            table["gene_name"].append("No data available")
-            table["biotype"].append("No data available")
-            table["contig"].append("No data available")
-            table["start"].append("No data available")
-            table["end"].append("No data available")
-            table["strand"].append("No data available")
-            table["genome"].append("No data available")
-            table["summary"].append("No data available")
-            table["clingen"].append("No data available")
-            table["entrezgene"].append("No data available")
+            for key in table.keys():
+                if key != "rowid":
+                    table[key].append("No data available")
+            table["rowid"].append(count)
+        count += 1
             # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
     print(len(table["summary"]))
     print(len(table["clingen"]))
