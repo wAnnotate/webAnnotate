@@ -5,28 +5,13 @@ from io import BufferedReader, TextIOWrapper
 import bs4
 import requests
 from pyensembl import EnsemblRelease
-
 from biothings_client import get_client
 
-# Testing for genes
+data = EnsemblRelease(77)
+
 gene_client = get_client('gene')
 
-gene_client.getgene('1017', fields='symbol,name')
-
-gene_client.getgenes(['1017', '1018'], species='human', fields='symbol,name')
-
-gene_client.query('uniprot:P24941', fields='symbol,name')
-
-gene_client.querymany(['P24941', 'O14727'], scopes='uniprot', fields='symbol,name')
-
-gene_client.metadata()
-# Testing for genes
-
-# Testing for variants
 variant_client = get_client('variant')
-
-variant_client.query('dbnsfp.genename:BTK', fields='_id')
-# Testing for variants
 
 app = Flask(__name__)
 
@@ -38,14 +23,15 @@ def index():
 
 def getGeneInfo(gene_id, table):
     data = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
-    table["summary"].insert(0,data["summary"])
-    table["entrezgene"].insert(0,'<a href="https://www.ncbi.nlm.nih.gov/gene/%s">For details</a>' % data["entrezgene"])
+    table["summary"].insert(0, data["summary"])
+    table["entrezgene"].insert(0, '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+                               % (data["entrezgene"], data["entrezgene"]))
     clinical_data = "no data"
-    if "clingen" in data  and "clinical_validity" in data["clingen"]:
+    if "clingen" in data and "clinical_validity" in data["clingen"]:
         clinical_data = ""
         for key in data["clingen"]["clinical_validity"]:
-            clinical_data += ('<p>%s</p>'% data["clingen"]["clinical_validity"][key])
-    table["clingen"].insert(0,clinical_data)
+            clinical_data += ('<p>%s</p>' % data["clingen"]["clinical_validity"][key])
+    table["clingen"].insert(0, clinical_data)
     """
     data = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
     soup = bs4.BeautifulSoup(data, 'html.parser')
@@ -75,44 +61,68 @@ def getGeneInfo(gene_id, table):
             table[th].append("")
     """
 
-def getGeneFromLocation(dbId, chr, pos):  # Gets reference db and location of gene, returns a Gene object
-    if dbId == 77 or dbId == 76 or dbId == 75:
-        data = EnsemblRelease(dbId)
-    else:
-        return Exception("Wrong database id.")
 
+def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object
+    global data
     gene = data.genes_at_locus(contig=chr, position=pos)
-
     if not gene:
-        return Exception("Gene not found.")
-
+        data = EnsemblRelease(76)
+        gene = data.genes_at_locus(contig=chr, position=pos)
+        if not gene:
+            data = EnsemblRelease(75)
+            gene = data.genes_at_locus(contig=chr, position=pos)
+            if not gene:
+                return Exception("Gene not found.")
     return gene
 
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
     file = request.files["efile"]
-    db = int(request.form["db"])
+    # genome = int(request.form["db"])
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
     print(type(file))
     vcf_reader = vcf.Reader(file)
-    table = {}
-    table["summary"] = []
-    table["clingen"] = []
-    table["entrezgene"] = []
-    table["db"] = [] 
+    table = {
+        "gene_id": [],
+        "gene_name": [],
+        "biotype": [],
+        "contig": [],
+        "start": [],
+        "end": [],
+        "strand": [],
+        "genome": [],
+        "summary": [],
+        "clingen": [],
+        "entrezgene": [],
+    }
     for record in vcf_reader:
         try:
-            gene = getGeneFromLocation(db, record.CHROM, record.POS)
+            gene = getGeneFromLocation(record.CHROM, record.POS)
             getGeneInfo(gene[0].gene_id, table)
-            table["db"].insert(0,gene.genome)
+            table["gene_id"].append(gene[0].gene_id)
+            table["gene_name"].append(gene[0].gene_name)
+            table["biotype"].append(gene[0].biotype)
+            table["contig"].append(gene[0].contig)
+            table["start"].append(gene[0].start)
+            table["end"].append(gene[0].end)
+            table["strand"].append(gene[0].strand)
+            table["genome"].append(gene[0].genome)
+            print("Successful adding.")
         except:
+            table["gene_id"].append("No data available")
+            table["gene_name"].append("No data available")
+            table["biotype"].append("No data available")
+            table["contig"].append("No data available")
+            table["start"].append("No data available")
+            table["end"].append("No data available")
+            table["strand"].append("No data available")
+            table["genome"].append("No data available")
             table["summary"].append("No data available")
             table["clingen"].append("No data available")
             table["entrezgene"].append("No data available")
-            table["db"].append("No data available")
             # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
     print(len(table["summary"]))
     print(len(table["clingen"]))
