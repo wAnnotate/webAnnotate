@@ -7,7 +7,9 @@ import requests
 from pyensembl import EnsemblRelease
 from biothings_client import get_client
 
-data = EnsemblRelease(77)
+dbChoice = 102
+dbs = (102, 75, 54)
+data = EnsemblRelease(dbChoice)
 
 gene_client = get_client('gene')
 
@@ -68,24 +70,28 @@ def getGeneInfo(gene_id, table):
     """
 
 
-def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object
+def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
     global data
+    data = EnsemblRelease(dbChoice)
     gene = data.genes_at_locus(contig=chr, position=pos)
     if not gene:
-        data = EnsemblRelease(76)
-        gene = data.genes_at_locus(contig=chr, position=pos)
-        if not gene:
-            data = EnsemblRelease(75)
+        for db in dbs:
+            if db == dbChoice:
+                continue
+            data = EnsemblRelease(db)
             gene = data.genes_at_locus(contig=chr, position=pos)
             if not gene:
-                return Exception("Gene not found.")
+                continue
+    if not gene:
+        return Exception("Gene not found.")
     return gene
 
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
     file = request.files["efile"]
-    # genome = int(request.form["db"])
+    global dbChoice
+    dbChoice = int(request.form["db"])
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
@@ -114,7 +120,6 @@ def annotate():
             for key in table.keys():
                 if key in gene_dict.keys() and key not in ["summart,clingen,entrezgene","rowid"]:
                     table[key].insert(0,gene_dict[key])
-                    print("Successful adding.")
                 elif key not in ["summart,clingen,entrezgene","rowid"]:
                     table[key].append("No data available")
             table["rowid"].insert(0,count)
@@ -125,9 +130,9 @@ def annotate():
             table["rowid"].append(count)
         count += 1
             # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
-    print(len(table["summary"]))
-    print(len(table["clingen"]))
-    print(len(table["entrezgene"]))
+    # print(len(table["summary"]))
+    # print(len(table["clingen"]))
+    # print(len(table["entrezgene"]))
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
         tablehtml += "<th>%s</th>" % th
