@@ -1,4 +1,4 @@
-from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory
+from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory,session
 import vcf
 import base64
 from io import BufferedReader, TextIOWrapper
@@ -16,6 +16,7 @@ gene_client = get_client('gene')
 variant_client = get_client('variant')
 
 app = Flask(__name__)
+app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
 
 
 @app.route("/")
@@ -26,20 +27,20 @@ def index():
 def getGeneInfo(gene_id, table):
     data = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
     if "summary" not in data:
-        table["summary"].insert(0, "No data avaliable")
+        table["summary"].append( "No data avaliable")
     else:
-        table["summary"].insert(0, data["summary"])
+        table["summary"].append( data["summary"])
     if "entrezgene" not in data:
-        table["entrezgene"].insert(0, "No data avaliable")
+        table["entrezgene"].append( "No data avaliable")
     else:
-        table["entrezgene"].insert(0, '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+        table["entrezgene"].append( '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                    % (data["entrezgene"], data["entrezgene"]))
     clinical_data = "no data"
     if "clingen" in data and "clinical_validity" in data["clingen"]:
         clinical_data = ""
         for key in data["clingen"]["clinical_validity"]:
             clinical_data += ('<p>%s</p>' % data["clingen"]["clinical_validity"][key])
-    table["clingen"].insert(0, clinical_data)
+    table["clingen"].append( clinical_data)
     """
     data = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
     soup = bs4.BeautifulSoup(data, 'html.parser')
@@ -134,6 +135,16 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
         return Exception("Unknown output format.")
     return gene
 
+@app.route("/annotate/<rowid>",methods=["GET"])
+def visualize(rowid):
+    rowid = int(rowid)
+    print(session["table"]["entrezgene"][rowid])
+    if "ncbi" in session["table"]["entrezgene"][rowid]:
+        data = requests.get(session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0]).text
+        soup = bs4.BeautifulSoup(data, 'html.parser')
+        graph = soup.find(id="gene-expression-app")
+        return str(graph)
+    return "No data available"
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
@@ -147,6 +158,7 @@ def annotate():
     vcf_reader = vcf.Reader(file)
     table = {
         "rowid": [],
+        "visualize":[],
         "gene_id": [],
         "gene_name": [],
         "biotype": [],
@@ -157,7 +169,7 @@ def annotate():
         "genome": [],
         "summary": [],
         "clingen": [],
-        "entrezgene": [],
+        "entrezgene": []
     }
     count = 0
     for record in vcf_reader:
@@ -173,21 +185,26 @@ def annotate():
                 getGeneInfo(gene[0].gene_id, table)
                 gene_dict = gene[0].__dict__
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary,clingen,entrezgene", "rowid"]:
-                    table[key].insert(0, gene_dict[key])
-                elif key not in ["summary,clingen,entrezgene", "rowid"]:
+                if key in gene_dict.keys() and key not in ["summary","clingen","entrezgene", "rowid","visualize"]:
+                    table[key].append( str(gene_dict[key]))
+                elif key not in ["summary","clingen","entrezgene", "rowid","visualize"]:
                     table[key].append("No data available")
-            table["rowid"].insert(0, count)
-        except:
+            table["rowid"].append( count)
+            table["visualize"].append('<a href="/annotate/%s">Visualize</a>' % count)
+        except Exception as exp:
+            print("Exception: ",exp)
             for key in table.keys():
                 if key != "rowid":
                     table[key].append("No data available")
             table["rowid"].append(count)
+        print(count,", ",len(table["entrezgene"]))
         count += 1
         # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
     # print(len(table["summary"]))
     # print(len(table["clingen"]))
     # print(len(table["entrezgene"]))
+    session["table"] = table.copy()
+    print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
         tablehtml += "<th>%s</th>" % th
