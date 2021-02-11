@@ -26,14 +26,14 @@ def index():
 def getGeneInfo(gene_id, table):
     data = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
     if "summary" not in data:
-        table["summary"].insert(0,"No data avaliable")
+        table["summary"].insert(0, "No data avaliable")
     else:
         table["summary"].insert(0, data["summary"])
     if "entrezgene" not in data:
-        table["entrezgene"].insert(0,"No data avaliable")
+        table["entrezgene"].insert(0, "No data avaliable")
     else:
         table["entrezgene"].insert(0, '<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
-                               % (data["entrezgene"], data["entrezgene"]))
+                                   % (data["entrezgene"], data["entrezgene"]))
     clinical_data = "no data"
     if "clingen" in data and "clinical_validity" in data["clingen"]:
         clinical_data = ""
@@ -82,8 +82,56 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
             gene = data.genes_at_locus(contig=chr, position=pos)
             if not gene:
                 continue
+            break
     if not gene:
         return Exception("Gene not found.")
+    return gene
+
+
+def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
+    global data
+    data = EnsemblRelease(dbChoice)
+    gene = data.gene_by_id(gId)
+    if not gene:
+        for db in dbs:
+            if db == dbChoice:
+                continue
+            data = EnsemblRelease(db)
+            gene = data.gene_by_id(gId)
+            if not gene:
+                continue
+            break
+    if not gene:
+        return Exception("Gene not found.")
+    return gene
+
+
+def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
+    if dbChoice == 102:
+        varData = variant_client.getvariant(rsId, assembly="hg38")
+        if varData is None:
+            return Exception("Gene not found from rsId.")
+    elif dbChoice == 75:
+        varData = variant_client.getvariant(rsId, assembly="hg19")
+        if varData is None:
+            return Exception("Gene not found from rsId.")
+    else:
+        for assembly in ("hg19", "hg38"):
+            varData = variant_client.getvariant(rsId, assembly=assembly)
+            if varData is None:
+                continue
+            break
+    if varData is None:
+        return Exception("Gene not found from rsId.")
+    if type(varData) == dict:
+        if type(varData["cadd"]["gene"]) == list:
+            gene = getGeneFromGeneId(varData["cadd"]["gene"][0]["gene_id"])
+        else:
+            gene = getGeneFromGeneId(varData["cadd"]["gene"]["gene_id"])
+    elif type(varData) == list:
+        gene = getGeneFromGeneId(varData[1]["cadd"]["gene"][1]["gene_id"])
+    else:
+        return Exception("Unknown output format.")
     return gene
 
 
@@ -98,7 +146,7 @@ def annotate():
     print(type(file))
     vcf_reader = vcf.Reader(file)
     table = {
-        "rowid":[],
+        "rowid": [],
         "gene_id": [],
         "gene_name": [],
         "biotype": [],
@@ -114,22 +162,29 @@ def annotate():
     count = 0
     for record in vcf_reader:
         try:
-            gene = getGeneFromLocation(record.CHROM, record.POS)
-            getGeneInfo(gene[0].gene_id, table)
-            gene_dict = gene[0].__dict__
+            if record.ID:  # RsId exists
+                print("rsid exists")
+                gene = getGeneFromRsId(record.ID)
+                getGeneInfo(gene.gene_id, table)
+                gene_dict = gene.__dict__
+            else:
+                print("rsid does not exist")
+                gene = getGeneFromLocation(record.CHROM, record.POS)
+                getGeneInfo(gene[0].gene_id, table)
+                gene_dict = gene[0].__dict__
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summart,clingen,entrezgene","rowid"]:
-                    table[key].insert(0,gene_dict[key])
-                elif key not in ["summart,clingen,entrezgene","rowid"]:
+                if key in gene_dict.keys() and key not in ["summary,clingen,entrezgene", "rowid"]:
+                    table[key].insert(0, gene_dict[key])
+                elif key not in ["summary,clingen,entrezgene", "rowid"]:
                     table[key].append("No data available")
-            table["rowid"].insert(0,count)
+            table["rowid"].insert(0, count)
         except:
             for key in table.keys():
                 if key != "rowid":
                     table[key].append("No data available")
             table["rowid"].append(count)
         count += 1
-            # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
+        # TODO: getGeneInfo function must be adjusted in order to annotate variants with unknown RSid
     # print(len(table["summary"]))
     # print(len(table["clingen"]))
     # print(len(table["entrezgene"]))
