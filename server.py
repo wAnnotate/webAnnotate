@@ -6,6 +6,7 @@ import bs4
 import requests
 from pyensembl import EnsemblRelease
 from biothings_client import get_client
+import json
 
 dbChoice = 102
 dbs = (102, 75, 54)
@@ -141,11 +142,24 @@ def visualize(rowid):
     rowid = int(rowid)
     print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
-        data = requests.get(session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0]).text
-        soup = bs4.BeautifulSoup(data, 'html.parser')
-        graph = soup.find(id="gene-expression-app")
-        return str(graph)
-    return "No data available"
+        gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
+        data = requests.get("https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s"%gene).text
+        data = data.split("\n\n\n")[1]
+        headers = data.split("\n")[0].split("\t")
+        data = data.split("\n")[1].split("\t")
+        tablehtml = '<table class="table table-bordered"><thead><tr>'
+        dta = []
+        for header,d in zip(headers,data):
+            if header and header != "#GeneID":
+                dta.append({"name":str(header),"value":float(d)})
+        for header in headers:
+            tablehtml += "<th>%s</th>" % header
+        tablehtml += "</tr></thead><tbody><tr>"
+        for d in data:
+            tablehtml += "<td>%s</td>" % d
+        tablehtml += "</tr><tbody></table>"
+        return render_template("visualization.html",table=tablehtml,dta = json.dumps(dta))
+    return render_template("visualization.html",table="No data available",dta = "[]")
 
 
 @app.route("/annotate", methods=["POST"])

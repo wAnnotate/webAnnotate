@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bs4/dt-1.10.22/datatables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/1.6.4/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/rowreorder/1.2.7/js/dataTables.rowReorder.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/2.2.6/js/dataTables.responsive.min.js"></script>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script defer>
+    window.addEventListener("load",()=>{
+    var chart = () => {
+      const svg = d3.create("svg")
+          .attr("viewBox", [0, 0, width, height]);
+      
+      const bar = svg.append("g")
+          .attr("fill", "steelblue")
+        .selectAll("rect")
+        .data(data)
+        .join("rect")
+          .style("mix-blend-mode", "multiply")
+          .attr("x", d => x(d.name))
+          .attr("y", d => y(d.value))
+          .attr("height", d => y(0) - y(d.value))
+          .attr("width", x.bandwidth());
+      
+      const gx = svg.append("g")
+          .call(xAxis);
+      
+      const gy = svg.append("g")
+          .call(yAxis);
+    
+      return Object.assign(svg.node(), {
+        update(order) {
+          x.domain(data.sort(order).map(d => d.name));
+    
+          const t = svg.transition()
+              .duration(150);
+    
+          bar.data(data, d => d.name)
+              .order()
+            .transition(t)
+              .delay((d, i) => i * 20)
+              .attr("x", d => x(d.name));
+    
+          gx.transition(t)
+              .call(xAxis)
+            .selectAll(".tick")
+              .delay((d, i) => i * 20);
+        }
+      });
+    }
+    
+    var data = JSON.parse('{{dta|safe}}');
+    var height = 500;
+    var width = 200;
+    var margin = ({top: 20, right: 0, bottom: 30, left: 40});
+    var x = d3.scaleBand()
+        .domain(data.map(d => d.name))
+        .range([margin.left, width - margin.right])
+        .padding(0.1)
+    var y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d.value)]).nice()
+        .range([height - margin.bottom, margin.top])
+    var xAxis = g => g
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickSizeOuter(0))
+    var yAxis = g => g
+        .attr("transform", `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y))
+        .call(g => g.select(".domain").remove())
+    setTimeout(() => document.getElementById("chart").append(chart()), 2000); 
+    console.log("code works");
+    })
+</script>
+</head>
+<body>
+    <p id="hidden" style="display: none;"></p>
+    {{table|safe}}
+    <div id="chart">
+  
+    </div>
+</body>
+</html>
