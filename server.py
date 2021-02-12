@@ -7,6 +7,7 @@ import requests
 from pyensembl import EnsemblRelease
 from biothings_client import get_client
 import json
+import os
 
 dbChoice = 102
 dbs = (102, 75, 54)
@@ -75,6 +76,31 @@ def getGeneInfo(gene_id, table):
         if th not in local_headers:
             table[th].append("")
     """
+
+@app.route("/static/images/logom.png")
+def logo():
+    print("logo asked for")
+    return send_from_directory(os.path.join(app.root_path, 'static', 'images'),
+                               'logom.PNG', mimetype='image/png')
+
+@app.route("/prevannotated",methods=["GET"])
+def prevAnnotated():
+    if "table" in session:
+        table = session["table"].copy()
+        tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
+        for th in table:
+            tablehtml += "<th>%s</th>" % th
+        tablehtml += "</tr></thead><tbody>"
+        count = len(list(table.values())[0])
+        for c in range(count):
+            tablehtml += "<tr>"
+            for th in table:
+                tablehtml += "<td>%s</td>" % table[th][c]
+            tablehtml += "</tr>"
+        tablehtml += "</tbody></table>"
+        return render_template("annotated.html", table=tablehtml)
+    return redirect("/")
+
 
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
@@ -157,6 +183,7 @@ def expression(rowid):
         for header,d in zip(headers,data):
             if header and header != "#GeneID":
                 dta.append({"name":str(header),"value":float(d)})
+        dta = sorted(dta, key = lambda i: i['value'])
         for header in headers:
             tablehtml += "<th>%s</th>" % header
         tablehtml += "</tr></thead><tbody><tr>"
