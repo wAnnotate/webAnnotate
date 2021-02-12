@@ -53,11 +53,11 @@
         }
       });
     }
-    
+
     var data = JSON.parse('{{dta|safe}}');
-    var height = 500;
-    var width = 200;
-    var margin = ({top: 20, right: 0, bottom: 30, left: 40});
+    var height = 750;
+    var width = 2000;
+    var margin = ({top: 20, right: 0, bottom: 20, left: 30});
     var x = d3.scaleBand()
         .domain(data.map(d => d.name))
         .range([margin.left, width - margin.right])

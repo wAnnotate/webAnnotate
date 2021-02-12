@@ -26,25 +26,30 @@ def index():
 
 
 def getGeneInfo(gene_id, table):
-    data = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
-    if "summary" not in data:
+    geneData = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
+    if "summary" not in geneData:
         table["summary"].append("No data avaliable")
     else:
-        table["summary"].append(data["summary"])
-    if "entrezgene" not in data:
+        table["summary"].append(geneData["summary"])
+    if "entrezgene" not in geneData:
         table["entrezgene"].append("No data avaliable")
     else:
         table["entrezgene"].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
-                                   % (data["entrezgene"], data["entrezgene"]))
+                                   % (geneData["entrezgene"], geneData["entrezgene"]))
     clinical_data = "no data"
-    if "clingen" in data and "clinical_validity" in data["clingen"]:
+    if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
-        for key in data["clingen"]["clinical_validity"]:
-            clinical_data += ('<p>%s</p>' % data["clingen"]["clinical_validity"][key])
+        if type(geneData["clingen"]["clinical_validity"]) == dict:
+            for key in geneData["clingen"]["clinical_validity"]:
+                clinical_data += ('<p>%s</p>' % geneData["clingen"]["clinical_validity"][key])
+        elif type(geneData["clingen"]["clinical_validity"]) == list:
+            for key in geneData["clingen"]["clinical_validity"]:
+                clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
+                                  key["mondo"], key["online_report"], key["sop"]))
     table["clingen"].append(clinical_data)
     """
-    data = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
-    soup = bs4.BeautifulSoup(data, 'html.parser')
+    geneData = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
+    soup = bs4.BeautifulSoup(geneData, 'html.parser')
     aS = soup.findAll('a', href=True)
     mainurl = "https://www.ncbi.nlm.nih.gov"
     endpoint = ""
@@ -138,7 +143,7 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
 
 
 @app.route("/annotate/<rowid>", methods=["GET"])
-def visualize(rowid):
+def expression(rowid):
     rowid = int(rowid)
     print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
@@ -174,7 +179,7 @@ def annotate():
     vcf_reader = vcf.Reader(file)
     table = {
         "rowid": [],
-        "visualize": [],
+        "expression": [],
         "gene_id": [],
         "gene_name": [],
         "biotype": [],
@@ -190,14 +195,14 @@ def annotate():
     count = 0
     for record in vcf_reader:
         foundGene = False
-        gene_dict = dict()
+        gene_dict = {}
         if record.ID:  # RsId exists
             print("rsid exists")
             try:
                 gene = getGeneFromRsId(record.ID)
-                getGeneInfo(gene.gene_id, table)
                 gene_dict = gene.__dict__
                 foundGene = True
+                getGeneInfo(gene.gene_id, table)
             except Exception as e:
                 print(e)
                 foundGene = False
@@ -206,21 +211,21 @@ def annotate():
                 print("rsid does not exist")
             try:
                 gene = getGeneFromLocation(record.CHROM, record.POS)
-                getGeneInfo(gene[0].gene_id, table)
                 gene_dict = gene[0].__dict__
                 foundGene = True
+                getGeneInfo(gene[0].gene_id, table)
             except Exception as e:
                 print(e)
                 foundGene = False
 
         if foundGene:
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "visualize"]:
+                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
                     table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "visualize"]:
+                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
                     table[key].append("No data available")
             table["rowid"].append(count)
-            table["visualize"].append('<a href="/annotate/%s">Visualize</a>' % count)
+            table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
         else:
             for key in table.keys():
                 if key != "rowid":
@@ -243,12 +248,12 @@ def annotate():
                 getGeneInfo(gene[0].gene_id, table)
                 gene_dict = gene[0].__dict__
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "visualize"]:
+                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
                     table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "visualize"]:
+                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
                     table[key].append("No data available")
             table["rowid"].append(count)
-            table["visualize"].append('<a href="/annotate/%s">Visualize</a>' % count)
+            table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
         except Exception as exp:
             print("Exception: ", exp)
             for key in table.keys():
@@ -262,7 +267,7 @@ def annotate():
     # print(len(table["clingen"]))
     # print(len(table["entrezgene"]))
     session["table"] = table.copy()
-    print(table)
+    # print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
         tablehtml += "<th>%s</th>" % th
