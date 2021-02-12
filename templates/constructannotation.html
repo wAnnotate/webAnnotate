@@ -1,0 +1,24 @@
+{% extends "main.html" %}
+{% block content %}
+<style>
+    input,select{
+    max-width: 280px;
+}
+#submitBtn{
+	font-size:16px;
+}
+</style>
+    <form method="POST" action="/constructannotation" enctype="multipart/form-data">
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label" for="file">File:</label>
+            <div class="col-sm-10">
+              <input id="file" class="form-control" type="file" name="efile" placeholder="Upload File" required="required">
+            </div> 
+        </div>
+        <div class="form-group row">
+          <div class="col-sm-10">
+            <input id="submitBtn" type="submit" class="btn btn-outline-primary" value="Upload">
+          </div>
+        </div>
+    </form>
+{% endblock %}
