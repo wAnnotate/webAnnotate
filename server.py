@@ -86,15 +86,17 @@ def logo():
 @app.route("/prevannotated",methods=["GET"])
 def prevAnnotated():
     if "table" in session:
+        ths = ["rowid","expression","gene_id","gene_name","biotype","contig",
+        "start","end","strand","genome","summary","clingen","entrezgene",]
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
-        for th in table:
+        for th in ths:
             tablehtml += "<th>%s</th>" % th
         tablehtml += "</tr></thead><tbody>"
         count = len(list(table.values())[0])
         for c in range(count):
             tablehtml += "<tr>"
-            for th in table:
+            for th in ths:
                 tablehtml += "<td>%s</td>" % table[th][c]
             tablehtml += "</tr>"
         tablehtml += "</tbody></table>"
@@ -205,6 +207,7 @@ def annotate():
     print(type(file))
     vcf_reader = vcf.Reader(file)
     table = {
+        " ":[],
         "rowid": [],
         "expression": [],
         "gene_id": [],
@@ -247,17 +250,23 @@ def annotate():
 
         if foundGene:
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
+                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"," "]:
                     table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
+                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"," "]:
                     table[key].append("No data available")
             table["rowid"].append(count)
             table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
+            table[" "].append("""
+                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                +
+                </button>
+            """)
         else:
             for key in table.keys():
                 if key != "rowid":
                     table[key].append("No data available")
             table["rowid"].append(count)
+            table[" "].append("")
 
         print(count, ", ", len(table["entrezgene"]))
         count += 1

@@ -4,7 +4,7 @@
     function toNormalDataTable() {
         $("#table").dataTable({
              
-        dom: 'Bfrtip',
+        dom: 'lBfrtip',
              "orderable": false,
              
             buttons: [
@@ -12,7 +12,7 @@
             ],
              "columnDefs": [
                  {
-                     "targets": [10,11],
+                     "targets": [11,12],
                      "class":"none"
                  },
                  {
@@ -37,16 +37,17 @@
 			 responsive: true,
              initComplete: function () {
                  this
-                    .api().order( [ 0, 'asc' ] )
+                    .api().order( [ 1, 'asc' ] )
                     .draw();
                  [...document.getElementsByTagName("button")]
-                    .forEach(b => b.className += " btn btn-outline-primary")
+                    .filter(b => b.getAttribute("name") != "+")
+                    .forEach(b => b.className += " btn btn-outline-primary");
                  let count = 0;
-                 let cols = [3,4,5,8]; 
+                 let cols = [4,5,6,9]; 
                  this.api().columns(cols).every(function () {
                      var column = this;
-                     var select = $(`<select id="select${count++}"><option value=""></option></select>`)
-                         .appendTo($(column.header()))
+                     var select = $(`<select id="select${count}"><option value=""></option></select>`)
+                         .appendTo($("#s"+String(count++)))
                          .on('change', function () {
                              var val = $.fn.dataTable.util.escapeRegex($(this).val());
                              column.search(val ? '^' + val + '$' : '', true, false).draw();
@@ -60,6 +61,50 @@
 
     }
     setTimeout(()=>toNormalDataTable(),2000);
+    function toggleFilter(){
+        let filterB = document.getElementById("fltr");
+        if(filterB.innerText.includes(">")){
+            document.getElementById("filter").style.display = "block";
+            filterB.innerText = "Filter V";
+        }
+        else{
+            document.getElementById("filter").style.display = "none";
+            filterB.innerText = "Filter >";
+        }
+    }
+    function toggle(btn){
+        if(btn.innerText == "-") btn.innerText = "+";
+        else btn.innerText = "-";
+    }   
 </script>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th colspan="2">
+                        <a href="javascript:toggleFilter()" id="fltr">
+                            Filter >
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="filter" style="display: none;">
+                <tr>
+                    <td>Gene Name</td>
+                    <td id="s0"></td>
+                </tr>
+                <tr>
+                    <td>Biotype</td>
+                    <td id="s1"></td>
+                </tr>
+                <tr>
+                    <td>Contig</td>
+                    <td id="s2"></td>
+                </tr>
+                <tr>
+                    <td>Strand</td>
+                    <td id="s3"></td>
+                </tr>
+            </tbody>
+        </table>
         {{table|safe}}
 {% endblock %}btn btn-outline-primary
