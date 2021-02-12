@@ -45,9 +45,9 @@
     }
 
     var data = JSON.parse('{{dta|safe}}');
-    var height = 750;
-    var width = 2000;
-    var margin = ({top: 20, right: 0, bottom: 20, left: 30});
+    var height = 450;
+    var width = 1500;
+    var margin = ({top: 0, right: 0, bottom: 130, left: 50});
     var x = d3.scaleBand()
         .domain(data.map(d => d.name))
         .range([margin.left, width - margin.right])
@@ -58,6 +58,14 @@
     var xAxis = g => g
         .attr("transform", `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x).tickSizeOuter(0))
+        .selectAll("text")
+            .style("text-anchor", "end")
+            .style("font", "18px times")
+            .attr("dx", "-.9em")
+            .attr("dy", "-.2em")
+            .attr("transform", function(d) {
+                return "rotate(-90)"
+                });
     var yAxis = g => g
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y))
