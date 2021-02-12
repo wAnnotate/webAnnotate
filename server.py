@@ -47,7 +47,7 @@ def getGeneInfo(gene_id, table):
         elif type(geneData["clingen"]["clinical_validity"]) == list:
             for key in geneData["clingen"]["clinical_validity"]:
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
-                                  key["mondo"], key["online_report"], key["sop"]))
+                                                                 key["mondo"], key["online_report"], key["sop"]))
     table["clingen"].append(clinical_data)
     """
     geneData = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
@@ -78,17 +78,20 @@ def getGeneInfo(gene_id, table):
             table[th].append("")
     """
 
+
 @app.route("/static/images/logom.png")
 def logo():
     print("logo asked for")
     return send_from_directory(os.path.join(app.root_path, 'static', 'images'),
                                'logom.PNG', mimetype='image/png')
-                               
-@app.route("/constructannotation",methods=["GET"])
+
+
+@app.route("/constructannotation", methods=["GET"])
 def constructannotationGet():
     return render_template("constructannotation.html")
 
-@app.route("/constructannotation",methods=["POST"])
+
+@app.route("/constructannotation", methods=["POST"])
 def constructannotation():
     file = request.files["efile"]
     file = BufferedReader(file)
@@ -114,19 +117,19 @@ def constructannotation():
         if count == 0:
             count += 1
             continue
-        for key,value in zip(table.keys(),row):
+        for key, value in zip(table.keys(), row):
             if key == "expression":
-                table[key].append('<a href="/annotate/%s">Expression Graph</a>' % (count-1))
+                table[key].append('<a href="/annotate/%s">Expression Graph</a>' % (count - 1))
             elif key == "entrezgene":
                 if "No" not in value:
                     table[key].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
-                                % (value, value))
+                                      % (value, value))
                 else:
                     table[key].append(value)
             else:
                 table[key].append(value)
         count += 1
-    
+
     table[" "] = []
     for i in range(len(table["rowid"])):
         table[" "].append("""
@@ -134,8 +137,8 @@ def constructannotation():
             +
                 </button>
             """)
-    ths = [" ","rowid","expression","gene_id","gene_name","biotype","contig",
-        "start","end","strand","genome","summary","clingen","entrezgene",]
+    ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
+           "start", "end", "strand", "genome", "summary", "clingen", "entrezgene", ]
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in ths:
         tablehtml += "<th>%s</th>" % th
@@ -148,13 +151,14 @@ def constructannotation():
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
     session["table"] = table.copy()
-    return render_template("annotated.html",table=tablehtml)
+    return render_template("annotated.html", table=tablehtml)
 
-@app.route("/prevannotated",methods=["GET"])
+
+@app.route("/prevannotated", methods=["GET"])
 def prevAnnotated():
     if "table" in session:
-        ths = [" ","rowid","expression","gene_id","gene_name","biotype","contig",
-        "start","end","strand","genome","summary","clingen","entrezgene",]
+        ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
+               "start", "end", "strand", "genome", "summary", "clingen", "entrezgene", ]
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
         for th in ths:
@@ -169,7 +173,6 @@ def prevAnnotated():
         tablehtml += "</tbody></table>"
         return render_template("annotated.html", table=tablehtml)
     return redirect("/")
-
 
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
@@ -243,24 +246,25 @@ def expression(rowid):
     print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
         gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
-        data = requests.get("https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s"%gene).text
+        data = requests.get(
+            "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).text
         data = data.split("\n\n\n")[1]
         headers = data.split("\n")[0].split("\t")
         data = data.split("\n")[1].split("\t")
         tablehtml = '<table class="table table-bordered"><thead><tr>'
         dta = []
-        for header,d in zip(headers,data):
+        for header, d in zip(headers, data):
             if header and header != "#GeneID":
-                dta.append({"name":str(header),"value":float(d)})
-        dta = sorted(dta, key = lambda i: i['value'])
+                dta.append({"name": str(header), "value": float(d)})
+        dta = sorted(dta, key=lambda i: i['value'])
         for header in headers:
             tablehtml += "<th>%s</th>" % header
         tablehtml += "</tr></thead><tbody><tr>"
         for d in data:
             tablehtml += "<td>%s</td>" % d
         tablehtml += "</tr><tbody></table>"
-        return render_template("visualization.html",table=tablehtml,dta = json.dumps(dta))
-    return render_template("visualization.html",table="No data available",dta = "[]")
+        return render_template("visualization.html", table=tablehtml, dta=json.dumps(dta))
+    return render_template("visualization.html", table="No data available", dta="[]")
 
 
 @app.route("/annotate", methods=["POST"])
@@ -274,7 +278,7 @@ def annotate():
     print(type(file))
     vcf_reader = vcf.Reader(file)
     table = {
-        " ":[],
+        " ": [],
         "rowid": [],
         "expression": [],
         "gene_id": [],
@@ -317,9 +321,10 @@ def annotate():
 
         if foundGene:
             for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"," "]:
+                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                                           " "]:
                     table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"," "]:
+                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", " "]:
                     table[key].append("No data available")
             table["rowid"].append(count)
             table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
