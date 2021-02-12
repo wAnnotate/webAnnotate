@@ -95,7 +95,6 @@ def constructannotation():
     file = TextIOWrapper(file)
     csv_input = csv.reader(file)
     table = {
-        " ":[],
         "rowid": [],
         "expression": [],
         "gene_id": [],
@@ -116,27 +115,27 @@ def constructannotation():
             count += 1
             continue
         for key,value in zip(table.keys(),row):
-            if key != " ":
-                if key == "expression":
-                    table[key].append('<a href="/annotate/%s">Expression Graph</a>' % (count-1))
-                elif key == "entrezgene":
-                    if "No" not in value:
-                        table[key].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
-                                   % (value, value))
-                    else:
-                        table[key].append(value)
+            if key == "expression":
+                table[key].append('<a href="/annotate/%s">Expression Graph</a>' % (count-1))
+            elif key == "entrezgene":
+                if "No" not in value:
+                    table[key].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+                                % (value, value))
                 else:
                     table[key].append(value)
+            else:
+                table[key].append(value)
+        count += 1
+    
+    table[" "] = []
     for i in range(len(table["rowid"])):
         table[" "].append("""
             <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
             +
                 </button>
             """)
-    count += 1
     ths = [" ","rowid","expression","gene_id","gene_name","biotype","contig",
         "start","end","strand","genome","summary","clingen","entrezgene",]
-    table = session["table"].copy()
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in ths:
         tablehtml += "<th>%s</th>" % th
@@ -331,7 +330,7 @@ def annotate():
             """)
         else:
             for key in table.keys():
-                if key != "rowid":
+                if key != "rowid" and key != " ":
                     table[key].append("No data available")
             table["rowid"].append(count)
             table[" "].append("")
