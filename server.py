@@ -10,6 +10,8 @@ import json
 import os
 import csv
 
+from civicdb import CivicDb
+
 dbChoice = 102
 dbs = (102, 75, 54)
 data = EnsemblRelease(dbChoice)
