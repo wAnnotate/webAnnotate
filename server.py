@@ -30,7 +30,7 @@ def index():
 
 
 def getGeneInfo(gene_id, table):
-    geneData = gene_client.getgene(gene_id, fields='summary,clingen,entrezgene')
+    geneData = gene_client.getgene(gene_id)
     if "summary" not in geneData:
         table["summary"].append("No data avaliable")
     else:
@@ -156,7 +156,7 @@ def constructannotation():
     return render_template("annotated.html", table=tablehtml)
 
 
-@app.route("/prevannotated", methods=["GET"])
+@app.route("/annotate", methods=["GET"])
 def prevAnnotated():
     if "table" in session:
         ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
@@ -179,17 +179,8 @@ def prevAnnotated():
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
     global data
-    data = EnsemblRelease(dbChoice)
+    data = EnsemblRelease(session["dbChoice"])
     gene = data.genes_at_locus(contig=chr, position=pos)
-    if not gene:
-        for db in dbs:
-            if db == dbChoice:
-                continue
-            data = EnsemblRelease(db)
-            gene = data.genes_at_locus(contig=chr, position=pos)
-            if not gene:
-                continue
-            break
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -197,28 +188,19 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
 
 def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
     global data
-    data = EnsemblRelease(dbChoice)
+    data = EnsemblRelease(session["dbChoice"])
     gene = data.gene_by_id(gId)
-    if not gene:
-        for db in dbs:
-            if db == dbChoice:
-                continue
-            data = EnsemblRelease(db)
-            gene = data.gene_by_id(gId)
-            if not gene:
-                continue
-            break
     if not gene:
         return Exception("Gene not found.")
     return gene
 
 
 def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
-    if dbChoice == 102:
+    if session["dbChoice"] == 102:
         varData = variant_client.getvariant(rsId, assembly="hg38")
         if varData is None:
             return Exception("Gene not found from rsId.")
-    elif dbChoice == 75:
+    elif session["dbChoice"] == 75:
         varData = variant_client.getvariant(rsId, assembly="hg19")
         if varData is None:
             return Exception("Gene not found from rsId.")
@@ -272,8 +254,7 @@ def expression(rowid):
 @app.route("/annotate", methods=["POST"])
 def annotate():
     file = request.files["efile"]
-    global dbChoice
-    dbChoice = int(request.form["db"])
+    session["dbChoice"] = int(request.form["db"])
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
@@ -300,25 +281,24 @@ def annotate():
         foundGene = False
         gene_dict = {}
         if record.ID:  # RsId exists
-            print("rsid exists")
+            # print("rsid exists")
             try:
                 gene = getGeneFromRsId(record.ID)
                 gene_dict = gene.__dict__
                 foundGene = True
                 getGeneInfo(gene.gene_id, table)
             except Exception as e:
-                print(e)
+                print("getGeneFromRsId: ", e)
                 foundGene = False
         if not foundGene:
-            if not record.ID:
-                print("rsid does not exist")
+            # if not record.ID: print("rsid does not exist")
             try:
                 gene = getGeneFromLocation(record.CHROM, record.POS)
                 gene_dict = gene[0].__dict__
                 foundGene = True
                 getGeneInfo(gene[0].gene_id, table)
             except Exception as e:
-                print(e)
+                print("getGeneFromLocation: ", e)
                 foundGene = False
 
         if foundGene:
@@ -342,7 +322,7 @@ def annotate():
             table["rowid"].append(count)
             table[" "].append("")
 
-        print(count, ", ", len(table["entrezgene"]))
+        # print(count, ", ", len(table["entrezgene"]))
         count += 1
         """
         try:
