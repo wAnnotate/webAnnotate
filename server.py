@@ -11,18 +11,21 @@ import os
 import csv
 from multiprocessing import Process, Manager, Pool
 from civicdb import CivicDb
+from flask_session import Session
 
+app = Flask(__name__)
+app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
 dbChoice = 102
 dbs = (102, 75, 54)
 data = EnsemblRelease(dbChoice)
-
+SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
 
 variant_client = get_client('variant')
 
-app = Flask(__name__)
-app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
 manager = Manager()
+app.config.from_object(__name__)
+Session(app)
 
 @app.route("/")
 def index():
@@ -308,7 +311,6 @@ def processVCFRecord(record,table,index):
             if key != "rowid" and key != " ":
                 subdict[key].append("No data available")
         subdict[" "].append("")
-    print(subdict)
     table[index] = subdict
 
 @app.route("/annotate", methods=["POST"])
