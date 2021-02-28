@@ -9,7 +9,7 @@ from biothings_client import get_client
 import json
 import os
 import csv
-
+from multiprocessing import Process, Manager, Pool
 from civicdb import CivicDb
 
 dbChoice = 102
@@ -22,7 +22,7 @@ variant_client = get_client('variant')
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
-
+manager = Manager()
 
 @app.route("/")
 def index():
@@ -251,8 +251,69 @@ def expression(rowid):
     return render_template("visualization.html", table="No data available", dta="[]")
 
 
+def processVCFRecord(record,table,index):
+    foundGene = False
+    gene_dict = {}
+    subdict = {
+        " ":[],
+        "expression": [],
+        "gene_id": [],
+        "gene_name": [],
+        "biotype": [],
+        "contig": [],
+        "start": [],
+        "end": [],
+        "strand": [],
+        "genome": [],
+        "summary": [],
+        "clingen": [],
+        "entrezgene": []
+    }
+    if record.ID:  # RsId exists
+        # print("rsid exists")
+        try:
+            gene = getGeneFromRsId(record.ID)
+            gene_dict = gene.__dict__
+            foundGene = True
+            getGeneInfo(gene.gene_id, subdict)
+        except Exception as e:
+            print("getGeneFromRsId: ", e)
+            foundGene = False
+    if not foundGene:
+        # if not record.ID: print("rsid does not exist")
+        try:
+            gene = getGeneFromLocation(record.CHROM, record.POS)
+            gene_dict = gene[0].__dict__
+            foundGene = True
+            getGeneInfo(gene[0].gene_id, subdict)
+        except Exception as e:
+            print("getGeneFromLocation: ", e)
+            foundGene = False
+
+    if foundGene:
+        for key in subdict.keys():
+            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                                           " "]:
+                subdict[key].append(str(gene_dict[key]))
+            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", " "]:
+                subdict[key].append("No data available")
+        subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
+        subdict[" "].append("""
+                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                +
+                </button>
+        """)
+    else:
+        for key in subdict.keys():
+            if key != "rowid" and key != " ":
+                subdict[key].append("No data available")
+        subdict[" "].append("")
+    print(subdict)
+    table[index] = subdict
+
 @app.route("/annotate", methods=["POST"])
 def annotate():
+    pool = Pool(os.cpu_count())
     file = request.files["efile"]
     session["dbChoice"] = int(request.form["db"])
     file.name = file.filename
@@ -260,6 +321,7 @@ def annotate():
     file = TextIOWrapper(file)
     print(type(file))
     vcf_reader = vcf.Reader(file)
+    ttable = manager.dict()
     table = {
         " ": [],
         "rowid": [],
@@ -277,7 +339,9 @@ def annotate():
         "entrezgene": []
     }
     count = 0
+    processes = []
     for record in vcf_reader:
+        '''
         foundGene = False
         gene_dict = {}
         if record.ID:  # RsId exists
@@ -323,7 +387,10 @@ def annotate():
             table[" "].append("")
 
         # print(count, ", ", len(table["entrezgene"]))
+        '''
+        pool.apply_async(processVCFRecord, (record,ttable,count))
         count += 1
+
         """
         try:
             if record.ID:  # RsId exists
@@ -353,9 +420,18 @@ def annotate():
         print(count, ", ", len(table["entrezgene"]))
         count += 1
         """
+    pool.close()
+    pool.join()
+    print(ttable)
+    for p in processes:
+        p.join()
     # print(len(table["summary"]))
     # print(len(table["clingen"]))
     # print(len(table["entrezgene"]))
+    for item in ttable.items():
+        table["rowid"].append(item[0])
+        for item2 in item[1].items():
+            table[item2[0]].append(item2[1][0])
     session["table"] = table.copy()
     # print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
