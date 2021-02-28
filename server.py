@@ -310,7 +310,7 @@ def processVCFRecord(record,table,index):
         for key in subdict.keys():
             if key != "rowid" and key != " ":
                 subdict[key].append("No data available")
-        subdict[" "].append("")
+        subdict[" "].append("") 
     table[index] = subdict
 
 @app.route("/annotate", methods=["POST"])
