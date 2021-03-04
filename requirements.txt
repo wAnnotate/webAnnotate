@@ -12,3 +12,4 @@ beautifulsoup4>=4.9.3
 requests>=2.25.0
 biothings_client==0.2.3
 pyensembl==1.9.1
+Flask-Session==0.3.2

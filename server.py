@@ -10,8 +10,10 @@ import json
 import os
 import csv
 from multiprocessing import Process, Manager, Pool
-from civicdb import CivicDb
 from flask_session import Session
+
+from civicdb import CivicDb
+import mapping  # mapping.remap()
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
@@ -26,6 +28,7 @@ variant_client = get_client('variant')
 manager = Manager()
 app.config.from_object(__name__)
 Session(app)
+
 
 @app.route("/")
 def index():
@@ -254,11 +257,11 @@ def expression(rowid):
     return render_template("visualization.html", table="No data available", dta="[]")
 
 
-def processVCFRecord(record,table,index):
+def processVCFRecord(record, table, index):
     foundGene = False
     gene_dict = {}
     subdict = {
-        " ":[],
+        " ": [],
         "expression": [],
         "gene_id": [],
         "gene_name": [],
@@ -296,7 +299,7 @@ def processVCFRecord(record,table,index):
     if foundGene:
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                           " "]:
+                                                       " "]:
                 subdict[key].append(str(gene_dict[key]))
             elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", " "]:
                 subdict[key].append("No data available")
@@ -310,8 +313,9 @@ def processVCFRecord(record,table,index):
         for key in subdict.keys():
             if key != "rowid" and key != " ":
                 subdict[key].append("No data available")
-        subdict[" "].append("") 
+        subdict[" "].append("")
     table[index] = subdict
+
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
@@ -390,7 +394,7 @@ def annotate():
 
         # print(count, ", ", len(table["entrezgene"]))
         '''
-        pool.apply_async(processVCFRecord, (record,ttable,count))
+        pool.apply_async(processVCFRecord, (record, ttable, count))
         count += 1
 
         """
