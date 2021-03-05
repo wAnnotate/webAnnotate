@@ -9,7 +9,7 @@ variantPath = "static/civicdb/01-Feb-2021-VariantSummaries.tsv"
 civicVcfPath = "static/civicdb/01-Feb-2021-civic_accepted_and_submitted.vcf"
 
 
-class CivicDb:
+class CivicDb:  # GRCh37 (Ensembl v75)
     def __init__(self):
         self.assertions = {}
         self.clinicalEvidences = {}
@@ -86,23 +86,71 @@ class CivicDb:
                 del row["variant_id"]
                 self.variants[Id] = row
 
-    def searchGenes(self, geneId):
-        """Test function works well"""
-        return self.genes[geneId]
+    def findVariantsFromLocation(self, chromosome, location):  # Returns array of variant dicts
+        variants = []
+        for v in self.variants.items():
+            if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
+                variants.append(v[1])
+                print(v[1]["start"], v[1]["stop"])
+            elif v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
+                variants.append(v[1])
+        return variants
+
+    def findGene(self, arg):  # Gets either gene name or entrez id, returns gene dict
+        isGeneName = False
+        isEntrezId = False
+        newArg = ""
+        if type(arg) is str:
+            try:
+                arg = int(arg)
+                isEntrezId = True
+            except ValueError:
+                isGeneName = True
+        elif type(arg) is int:
+            isEntrezId = True
+        else:
+            return Exception("Invalid arguments.")
+
+        gene = {}
+        if isGeneName:
+            for g in self.genes.items():
+                if g[1]["name"] == arg:
+                    gene = g[1]
+                    break
+        elif isEntrezId:
+            for g in self.genes.items():
+                if g[1]["entrez_id"] == str(arg):
+                    gene = g[1]
+                    break
+        else:
+            Exception("Unknown error.")
+        return gene
+
+    def findGeneFromLocation(self, chromosome, location):  # Returns gene dict
+        variants = self.findVariantsFromLocation(chromosome, location)
+        gene = self.findGene(variants[0]["gene"])
+        return gene
+
+    def findVariantGroups(self, groups):
+        variantGroups = []
+        groups = groups.split(',')
+        for g in groups:
+            for vg in self.variantGroups.items():
+                if vg[1]["variant_group"] == g:
+                    variantGroups.append(vg[1])
+        return variantGroups
 
 
 """
-# test code
-with open(clinicalEvidencePath, mode='r') as tsv_file:
-    tsv_reader = csv.DictReader(tsv_file, delimiter='\t')
-    line_count = 0
-    for row in tsv_reader:
-        print(row["evidence_id"], row["evidence_civic_url"])
-        if line_count == 0:
-            # print(f'Column names are {", ".join(row)}')
-            line_count += 1
-        else:
-            # print(f'\t{row["gene_id"]} {row["name"]} {row["entrez_id"]}')
-            line_count += 1
-    print(f'Processed {line_count} lines.')
+db = CivicDb()
+
+for e in db.clinicalEvidences.items():
+    if e[1]["variant"] == "V617F":
+        for values in e[1].items():
+            print(values[0], " -> ", values[1])
+        print()
+print()
+for values in db.variants["64"].items():
+    print(values[0], " -> ", values[1])
+# variant, representative_transcript, konum
 """

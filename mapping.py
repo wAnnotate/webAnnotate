@@ -15,7 +15,10 @@ def remap(asm_from, asm_to, chromosome, location):  # Remaps from one assembly t
         sys.exit()
 
     decoded = r.json()
-    return decoded["mappings"][0]["mapped"]
+    return decoded["mappings"][0]["mapped"]["seq_region_name"], decoded["mappings"][0]["mapped"]["start"]
 
-# remapped = remap("NCBI36", "GRCh38", 16, 50745926)
-# print(remapped)
+
+"""
+remapped = remap("NCBI36", "GRCh38", 16, 50745926)
+print(remapped)
+"""

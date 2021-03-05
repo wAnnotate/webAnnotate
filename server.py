@@ -19,6 +19,11 @@ app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
 dbChoice = 102
 dbs = (102, 75, 54)
+dbName = {
+    54: "NCBI36",
+    75: "GRCh37",
+    102: "GRCh38"
+}
 data = EnsemblRelease(dbChoice)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
@@ -184,9 +189,20 @@ def prevAnnotated():
 
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
+    """Included automatic remapping feature for wider search"""
     global data
     data = EnsemblRelease(session["dbChoice"])
     gene = data.genes_at_locus(contig=chr, position=pos)
+    if not gene:
+        for db in dbs:
+            if db == dbChoice:
+                continue
+            data = EnsemblRelease(db)
+            chr, pos = mapping.remap(dbName[dbChoice], dbName[db], chr, pos)
+            gene = data.genes_at_locus(contig=chr, position=pos)
+            if not gene:
+                continue
+            break
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -196,6 +212,15 @@ def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
     global data
     data = EnsemblRelease(session["dbChoice"])
     gene = data.gene_by_id(gId)
+    if not gene:
+        for db in dbs:
+            if db == dbChoice:
+                continue
+            data = EnsemblRelease(db)
+            gene = data.gene_by_id(gId)
+            if not gene:
+                continue
+            break
     if not gene:
         return Exception("Gene not found.")
     return gene
