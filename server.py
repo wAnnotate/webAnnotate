@@ -372,96 +372,15 @@ def annotate():
     count = 0
     processes = []
     for record in vcf_reader:
-        '''
-        foundGene = False
-        gene_dict = {}
-        if record.ID:  # RsId exists
-            # print("rsid exists")
-            try:
-                gene = getGeneFromRsId(record.ID)
-                gene_dict = gene.__dict__
-                foundGene = True
-                getGeneInfo(gene.gene_id, table)
-            except Exception as e:
-                print("getGeneFromRsId: ", e)
-                foundGene = False
-        if not foundGene:
-            # if not record.ID: print("rsid does not exist")
-            try:
-                gene = getGeneFromLocation(record.CHROM, record.POS)
-                gene_dict = gene[0].__dict__
-                foundGene = True
-                getGeneInfo(gene[0].gene_id, table)
-            except Exception as e:
-                print("getGeneFromLocation: ", e)
-                foundGene = False
-
-        if foundGene:
-            for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                           " "]:
-                    table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", " "]:
-                    table[key].append("No data available")
-            table["rowid"].append(count)
-            table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
-            table[" "].append("""
-                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
-                +
-                </button>
-            """)
-        else:
-            for key in table.keys():
-                if key != "rowid" and key != " ":
-                    table[key].append("No data available")
-            table["rowid"].append(count)
-            table[" "].append("")
-
-        # print(count, ", ", len(table["entrezgene"]))
-        '''
         pool.apply_async(processVCFRecord, (record, ttable, count))
         count += 1
-
-        """
-        try:
-            if record.ID:  # RsId exists
-                print("rsid exists")
-                gene = getGeneFromRsId(record.ID)
-                getGeneInfo(gene.gene_id, table)
-                gene_dict = gene.__dict__
-                foundGene = True
-            else:
-                print("rsid does not exist")
-                gene = getGeneFromLocation(record.CHROM, record.POS)
-                getGeneInfo(gene[0].gene_id, table)
-                gene_dict = gene[0].__dict__
-            for key in table.keys():
-                if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
-                    table[key].append(str(gene_dict[key]))
-                elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression"]:
-                    table[key].append("No data available")
-            table["rowid"].append(count)
-            table["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % count)
-        except Exception as exp:
-            print("Exception: ", exp)
-            for key in table.keys():
-                if key != "rowid":
-                    table[key].append("No data available")
-            table["rowid"].append(count)
-        print(count, ", ", len(table["entrezgene"]))
-        count += 1
-        """
     pool.close()
     pool.join()
-    print(ttable)
-    for p in processes:
-        p.join()
-    # print(len(table["summary"]))
-    # print(len(table["clingen"]))
-    # print(len(table["entrezgene"]))
-    for item in ttable.items():
-        table["rowid"].append(item[0])
-        for item2 in item[1].items():
+    count = len(list(ttable.keys()))
+    for c in range(count):
+        table["rowid"].append(c)
+        for item2 in ttable[c].items():
+            print(len(item2[1]))
             table[item2[0]].append(item2[1][0])
     session["table"] = table.copy()
     # print(table)
