@@ -26,6 +26,7 @@ dbName = {
 data = EnsemblRelease(102)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
+civic = CivicDb()
 
 variant_client = get_client('variant')
 
@@ -174,13 +175,15 @@ def prevAnnotated():
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
         for th in ths:
-            tablehtml += "<th>%s</th>" % th
+            if th != "variants":
+                tablehtml += "<th>%s</th>" % th
         tablehtml += "</tr></thead><tbody>"
         count = len(list(table.values())[0])
         for c in range(count):
             tablehtml += "<tr>"
             for th in ths:
-                tablehtml += "<td>%s</td>" % table[th][c]
+                if th != "variants":
+                    tablehtml += "<td>%s</td>" % table[th][c]
             tablehtml += "</tr>"
         tablehtml += "</tbody></table>"
         return render_template("annotated.html", table=tablehtml)
@@ -250,6 +253,11 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
         return Exception("Unknown output format.")
     return gene
 
+@app.route("/getVariantData", methods=["GET"])
+def getVariantsData():
+    gene = int(request.args.get("gene"))
+    variant = int(request.args.get("variant"))
+    return Response(response=session["table"]["variants"][gene][variant])
 
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
@@ -290,11 +298,13 @@ def processVCFRecord(record, table, index):
         "contig": [],
         "start": [],
         "end": [],
+        "variants":[],
         "strand": [],
         "genome": [],
         "summary": [],
         "clingen": [],
-        "entrezgene": []
+        "entrezgene": [],
+        "variantdata":[]
     }
     if record.ID:  # RsId exists
         # print("rsid exists")
@@ -318,12 +328,31 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
+        civicdata = civic.findVariantsFromLocation(record.CHROM,record.POS)
+        variantdata = ""
+        varianthtml = "No data available"
+        count = 0
+        for variant in civicdata:
+            vdata = {}
+            print(variant)
+            if "variant" in variant:
+                variantdata += '<option value="%s-%s">%s</option>' % (index,count,variant["variant"])
+                vdata["header"] = variant["variant"]
+                if "summart" in variant and variant["summary"]:
+                    vdata["body"] = variant["summary"]
+                else:
+                    vdata["body"] = "No data Available"
+                count += 1
+                subdict["variants"].append(json.dumps(vdata))
+        if variantdata:
+            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
+        subdict["variantdata"].append(varianthtml)
         # print(gene)
         for key in subdict.keys():
-            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       " "]:
+            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression","variants",
+                                                       "variantdata"," "]:
                 subdict[key].append(str(gene_dict[key]))
-            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", " "]:
+            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression","variants","variantdata", " "]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -366,7 +395,9 @@ def annotate():
         "genome": [],
         "summary": [],
         "clingen": [],
-        "entrezgene": []
+        "entrezgene": [],
+        "variants":[],
+        "variantdata":[]
     }
     pool = Pool(os.cpu_count())
     count = 0
@@ -380,19 +411,24 @@ def annotate():
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
-            # print(len(item2[1]))
-            table[item2[0]].append(item2[1][0])
+            if item2[0] != "variants":
+                # print(len(item2[1]))
+                table[item2[0]].append(item2[1][0])
+            else:
+                table[item2[0]].append(item2[1])
     session["table"] = table.copy()
     # print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
-        tablehtml += "<th>%s</th>" % th
+        if th != "variants":
+            tablehtml += "<th>%s</th>" % th
     tablehtml += "</tr></thead><tbody>"
     count = len(list(table.values())[0])
     for c in range(count):
         tablehtml += "<tr>"
         for th in table:
-            tablehtml += "<td>%s</td>" % table[th][c]
+            if th != "variants":
+                tablehtml += "<td>%s</td>" % table[th][c]
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
     return render_template("annotated.html", table=tablehtml)

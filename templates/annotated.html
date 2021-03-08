@@ -94,8 +94,50 @@
     function toggle(btn){
         if(btn.innerText == "-") btn.innerText = "+";
         else btn.innerText = "-";
-    }   
+    }
+
+    window.addEventListener("load",() => {
+        var span = document.getElementsByClassName("close")[0];
+        var modal = document.getElementById("myModal");
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+        window.onclick = event => {
+            if (event.target == modal) 
+                modal.style.display = "none";
+        }
+    })
+
+    function toggleModal(select){
+        if(!select.value)
+            return;
+        var gene = select.value.split("-")[0]
+        var index = select.value.split("-")[1]
+        var modal = document.getElementById("myModal");
+        var modalHeader = document.getElementById("modalHeader");
+        var modalBody = document.getElementById("modalBody");
+        fetch(`/getVariantData?gene=${gene}&variant=${index}`)
+            .then(data => data.json())
+            .then(data => {
+                modalHeader.innerText = data["header"];
+                modalBody.innerHTML = data["summary"];
+            })
+        modal.style.display = "block";
+    }
 </script>
+<div id="myModal" class="modal"  style="display: none;">
+    <div class="modal-content" id="modal-content">
+        <div class="modal-header">
+            <span class="close">&times;</span>
+            <h2 id="modalHeader">Modal Header</h2>
+        </div>
+        <div class="modal-body" id="modalBody">
+        </div>
+        <div class="modal-footer">
+             <h3>Modal Footer</h3>
+        </div>
+    </div>
+</div>
         <table class="table table-bordered">
             <thead>
                 <tr>
