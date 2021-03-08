@@ -190,7 +190,7 @@ def prevAnnotated():
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
     global data
     gene = data.genes_at_locus(contig=chr, position=pos)
-    """if not gene:
+    if not gene:
         for db in dbs:
             if db == session["dbChoice"]:
                 continue
@@ -199,7 +199,7 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
             gene = data.genes_at_locus(contig=chr, position=pos)
             if not gene:
                 continue
-            break"""
+            break
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -208,7 +208,7 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
 def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
     global data
     gene = data.gene_by_id(gId)
-    """if not gene:
+    if not gene:
         for db in dbs:
             if db == session["dbChoice"]:
                 continue
@@ -216,7 +216,7 @@ def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
             gene = data.gene_by_id(gId)
             if not gene:
                 continue
-            break"""
+            break
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -318,7 +318,7 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
-        print(gene)
+        # print(gene)
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                                        " "]:
@@ -341,10 +341,11 @@ def processVCFRecord(record, table, index):
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
-    pool = Pool(os.cpu_count())
-    file = request.files["efile"]
     session["dbChoice"] = int(request.form["db"])
     print("DB choice:", session["dbChoice"])
+    global data
+    data = EnsemblRelease(session["dbChoice"])
+    file = request.files["efile"]
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
@@ -367,11 +368,9 @@ def annotate():
         "clingen": [],
         "entrezgene": []
     }
+    pool = Pool(os.cpu_count())
     count = 0
     processes = []
-    global data
-    data = EnsemblRelease(session["dbChoice"])
-    print(data)
     for record in vcf_reader:
         pool.apply_async(processVCFRecord, (record, ttable, count))
         count += 1
