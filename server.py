@@ -171,7 +171,8 @@ def constructannotation():
 def prevAnnotated():
     if "table" in session:
         ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
-               "start", "end", "strand", "genome", "summary", "clingen", "entrezgene", ]
+               "start", "end", "strand", "genome", "summary", "clingen", "entrezgene",
+               "variantdata" ]
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
         for th in ths:
