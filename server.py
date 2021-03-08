@@ -4,7 +4,6 @@ import base64
 from io import BufferedReader, TextIOWrapper
 import bs4
 import requests
-from pyensembl import EnsemblRelease
 from biothings_client import get_client
 import json
 import os
@@ -14,17 +13,16 @@ from flask_session import Session
 
 from civicdb import CivicDb
 import mapping  # mapping.remap()
+import ensemblDb
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
-dbChoice = 102
 dbs = (102, 75, 54)
 dbName = {
-    54: "NCBI36",
-    75: "GRCh37",
-    102: "GRCh38"
+    "54": "NCBI36",
+    "75": "GRCh37",
+    "102": "GRCh38",
 }
-data = EnsemblRelease(dbChoice)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
 
@@ -190,16 +188,13 @@ def prevAnnotated():
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
     """Included automatic remapping feature for wider search"""
-    global data
-    data = EnsemblRelease(session["dbChoice"])
-    gene = data.genes_at_locus(contig=chr, position=pos)
+    gene = ensemblDb.genesAtLocus(session["dbChoice"], chr, pos)
     if not gene:
         for db in dbs:
-            if db == dbChoice:
+            if db == session["dbChoice"]:
                 continue
-            data = EnsemblRelease(db)
-            chr, pos = mapping.remap(dbName[dbChoice], dbName[db], chr, pos)
-            gene = data.genes_at_locus(contig=chr, position=pos)
+            newChr, newPos = mapping.remap(dbName[str(session["dbChoice"])], dbName[str(db)], chr, pos)
+            gene = ensemblDb.genesAtLocus(db, newChr, newPos)
             if not gene:
                 continue
             break
@@ -209,15 +204,12 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
 
 
 def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
-    global data
-    data = EnsemblRelease(session["dbChoice"])
-    gene = data.gene_by_id(gId)
+    gene = ensemblDb.geneById(session["dbChoice"], gId)
     if not gene:
         for db in dbs:
-            if db == dbChoice:
+            if db == session["dbChoice"]:
                 continue
-            data = EnsemblRelease(db)
-            gene = data.gene_by_id(gId)
+            gene = ensemblDb.geneById(db, gId)
             if not gene:
                 continue
             break
@@ -258,7 +250,7 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
     rowid = int(rowid)
-    print(session["table"]["entrezgene"][rowid])
+    # print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
         gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
         data = requests.get(
@@ -300,8 +292,19 @@ def processVCFRecord(record, table, index):
         "clingen": [],
         "entrezgene": []
     }
-    if record.ID:  # RsId exists
-        # print("rsid exists")
+
+    if not foundGene:
+        try:
+            gene = getGeneFromLocation(record.CHROM, record.POS)
+            gene_dict = gene[0].__dict__
+            foundGene = True
+            print(gene)
+            getGeneInfo(gene[0].gene_id, subdict)
+        except Exception as e:
+            print("getGeneFromLocation: ", e)
+            foundGene = False
+
+    if record.ID and not foundGene:  # RsId exists
         try:
             gene = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
@@ -309,16 +312,6 @@ def processVCFRecord(record, table, index):
             getGeneInfo(gene.gene_id, subdict)
         except Exception as e:
             print("getGeneFromRsId: ", e)
-            foundGene = False
-    if not foundGene:
-        # if not record.ID: print("rsid does not exist")
-        try:
-            gene = getGeneFromLocation(record.CHROM, record.POS)
-            gene_dict = gene[0].__dict__
-            foundGene = True
-            getGeneInfo(gene[0].gene_id, subdict)
-        except Exception as e:
-            print("getGeneFromLocation: ", e)
             foundGene = False
 
     if foundGene:
@@ -347,10 +340,11 @@ def annotate():
     pool = Pool(os.cpu_count())
     file = request.files["efile"]
     session["dbChoice"] = int(request.form["db"])
+    print("DB Choice: ", dbName[str(session["dbChoice"])])
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
-    print(type(file))
+    # print(type(file))
     vcf_reader = vcf.Reader(file)
     ttable = manager.dict()
     table = {
@@ -380,7 +374,7 @@ def annotate():
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
-            print(len(item2[1]))
+            # print(len(item2[1]))
             table[item2[0]].append(item2[1][0])
     session["table"] = table.copy()
     # print(table)
