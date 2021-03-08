@@ -120,9 +120,9 @@
             .then(data => data.json())
             .then(data => {
                 modalHeader.innerText = data["header"];
-                modalBody.innerHTML = data["summary"];
+                modalBody.innerHTML = data["body"];
+                modal.style.display = "block";
             })
-        modal.style.display = "block";
     }
 </script>
 <div id="myModal" class="modal"  style="display: none;">
