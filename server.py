@@ -17,14 +17,13 @@ import mapping  # mapping.remap()
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
-dbChoice = 102
 dbs = (102, 75, 54)
 dbName = {
-    54: "NCBI36",
-    75: "GRCh37",
-    102: "GRCh38"
+    "54": "NCBI36",
+    "75": "GRCh37",
+    "102": "GRCh38"
 }
-data = EnsemblRelease(dbChoice)
+data = EnsemblRelease(102)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
 
@@ -189,20 +188,18 @@ def prevAnnotated():
 
 
 def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
-    """Included automatic remapping feature for wider search"""
     global data
-    data = EnsemblRelease(session["dbChoice"])
     gene = data.genes_at_locus(contig=chr, position=pos)
-    if not gene:
+    """if not gene:
         for db in dbs:
-            if db == dbChoice:
+            if db == session["dbChoice"]:
                 continue
             data = EnsemblRelease(db)
-            chr, pos = mapping.remap(dbName[dbChoice], dbName[db], chr, pos)
+            chr, pos = mapping.remap(dbName[str(session["dbChoice"])], dbName[str(db)], chr, pos)
             gene = data.genes_at_locus(contig=chr, position=pos)
             if not gene:
                 continue
-            break
+            break"""
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -210,17 +207,16 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
 
 def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
     global data
-    data = EnsemblRelease(session["dbChoice"])
     gene = data.gene_by_id(gId)
-    if not gene:
+    """if not gene:
         for db in dbs:
-            if db == dbChoice:
+            if db == session["dbChoice"]:
                 continue
             data = EnsemblRelease(db)
             gene = data.gene_by_id(gId)
             if not gene:
                 continue
-            break
+            break"""
     if not gene:
         return Exception("Gene not found.")
     return gene
@@ -258,24 +254,24 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
     rowid = int(rowid)
-    print(session["table"]["entrezgene"][rowid])
+    # print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
         gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
-        data = requests.get(
+        data1 = requests.get(
             "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).text
-        data = data.split("\n\n\n")[1]
-        headers = data.split("\n")[0].split("\t")
-        data = data.split("\n")[1].split("\t")
+        data1 = data1.split("\n\n\n")[1]
+        headers = data1.split("\n")[0].split("\t")
+        data1 = data1.split("\n")[1].split("\t")
         tablehtml = '<table class="table table-bordered"><thead><tr>'
         dta = []
-        for header, d in zip(headers, data):
+        for header, d in zip(headers, data1):
             if header and header != "#GeneID":
                 dta.append({"name": str(header), "value": float(d)})
         dta = sorted(dta, key=lambda i: i['value'])
         for header in headers:
             tablehtml += "<th>%s</th>" % header
         tablehtml += "</tr></thead><tbody><tr>"
-        for d in data:
+        for d in data1:
             tablehtml += "<td>%s</td>" % d
         tablehtml += "</tr><tbody></table>"
         return render_template("visualization.html", table=tablehtml, dta=json.dumps(dta))
@@ -322,6 +318,7 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
+        print(gene)
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                                        " "]:
@@ -347,10 +344,11 @@ def annotate():
     pool = Pool(os.cpu_count())
     file = request.files["efile"]
     session["dbChoice"] = int(request.form["db"])
+    print("DB choice:", session["dbChoice"])
     file.name = file.filename
     file = BufferedReader(file)
     file = TextIOWrapper(file)
-    print(type(file))
+    # print(type(file))
     vcf_reader = vcf.Reader(file)
     ttable = manager.dict()
     table = {
@@ -371,6 +369,9 @@ def annotate():
     }
     count = 0
     processes = []
+    global data
+    data = EnsemblRelease(session["dbChoice"])
+    print(data)
     for record in vcf_reader:
         pool.apply_async(processVCFRecord, (record, ttable, count))
         count += 1
@@ -380,7 +381,7 @@ def annotate():
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
-            print(len(item2[1]))
+            # print(len(item2[1]))
             table[item2[0]].append(item2[1][0])
     session["table"] = table.copy()
     # print(table)
