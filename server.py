@@ -266,6 +266,9 @@ def expression(rowid):
     # print(session["table"]["entrezgene"][rowid])
     if "ncbi" in session["table"]["entrezgene"][rowid]:
         gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
+        if requests.get(
+            "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).status_code == 500:
+            return render_template("visualization.html", table="No data available", dta="[]")
         data1 = requests.get(
             "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).text
         data1 = data1.split("\n\n\n")[1]
