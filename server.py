@@ -26,10 +26,8 @@ dbName = {
 data = EnsemblRelease(102)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
-civic = CivicDb()
-
 variant_client = get_client('variant')
-
+civic = CivicDb()
 manager = Manager()
 app.config.from_object(__name__)
 Session(app)
@@ -172,7 +170,7 @@ def prevAnnotated():
     if "table" in session:
         ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
                "start", "end", "strand", "genome", "summary", "clingen", "entrezgene",
-               "variantdata" ]
+               "variantdata"]
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
         for th in ths:
@@ -254,11 +252,13 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
         return Exception("Unknown output format.")
     return gene
 
+
 @app.route("/getVariantData", methods=["GET"])
 def getVariantsData():
     gene = int(request.args.get("gene"))
     variant = int(request.args.get("variant"))
     return Response(response=session["table"]["variants"][gene][variant])
+
 
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
@@ -299,14 +299,15 @@ def processVCFRecord(record, table, index):
         "contig": [],
         "start": [],
         "end": [],
-        "variants":[],
+        "variants": [],
         "strand": [],
         "genome": [],
         "summary": [],
         "clingen": [],
         "entrezgene": [],
-        "variantdata":[]
+        "variantdata": []
     }
+
     if record.ID:  # RsId exists
         # print("rsid exists")
         try:
@@ -317,6 +318,7 @@ def processVCFRecord(record, table, index):
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
+
     if not foundGene:
         # if not record.ID: print("rsid does not exist")
         try:
@@ -329,7 +331,7 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
-        civicdata = civic.findVariantsFromLocation(record.CHROM,record.POS)
+        civicdata = civic.findVariantsFromLocation(record.CHROM, record.POS)
         variantdata = ""
         varianthtml = "No data available"
         count = 0
@@ -337,9 +339,9 @@ def processVCFRecord(record, table, index):
             vdata = {}
             print(variant)
             if "variant" in variant:
-                variantdata += '<option value="%s-%s">%s</option>' % (index,count,variant["variant"])
+                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["variant"])
                 vdata["header"] = variant["variant"]
-                if "summart" in variant and variant["summary"]:
+                if "summary" in variant and variant["summary"]:
                     vdata["body"] = variant["summary"]
                 else:
                     vdata["body"] = "No data Available"
@@ -350,10 +352,11 @@ def processVCFRecord(record, table, index):
         subdict["variantdata"].append(varianthtml)
         # print(gene)
         for key in subdict.keys():
-            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression","variants",
-                                                       "variantdata"," "]:
+            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                                       "variants",
+                                                       "variantdata", " "]:
                 subdict[key].append(str(gene_dict[key]))
-            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression","variants","variantdata", " "]:
+            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " "]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -397,8 +400,8 @@ def annotate():
         "summary": [],
         "clingen": [],
         "entrezgene": [],
-        "variants":[],
-        "variantdata":[]
+        "variants": [],
+        "variantdata": []
     }
     pool = Pool(os.cpu_count())
     count = 0

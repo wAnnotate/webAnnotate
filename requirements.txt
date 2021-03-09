@@ -10,6 +10,6 @@ psycopg2-binary>=2.7
 PyVCF>=0.6.8
 beautifulsoup4>=4.9.3
 requests>=2.25.0
-biothings_client==0.2.3
+biothings_client==0.2.5
 pyensembl==1.9.1
 Flask-Session==0.3.2
