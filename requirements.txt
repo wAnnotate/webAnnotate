@@ -13,3 +13,4 @@ requests>=2.25.0
 biothings_client==0.2.5
 pyensembl==1.9.1
 Flask-Session==0.3.2
+json2html==1.3.0
