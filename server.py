@@ -11,7 +11,7 @@ import os
 import csv
 from multiprocessing import Process, Manager, Pool
 from flask_session import Session
-
+from json2html import *
 from civicdb import CivicDb
 import mapping  # mapping.remap()
 
@@ -228,11 +228,11 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
     if session["dbChoice"] == 102:
         varData = variant_client.getvariant(rsId, assembly="hg38")
         if varData is None:
-            return Exception("Gene not found from rsId.")
+            return Exception("Gene not found from rsId."),varData
     elif session["dbChoice"] == 75:
         varData = variant_client.getvariant(rsId, assembly="hg19")
         if varData is None:
-            return Exception("Gene not found from rsId.")
+            return Exception("Gene not found from rsId."),varData
     else:
         for assembly in ("hg19", "hg38"):
             varData = variant_client.getvariant(rsId, assembly=assembly)
@@ -240,7 +240,7 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
                 continue
             break
     if varData is None:
-        return Exception("Gene not found from rsId.")
+        return Exception("Gene not found from rsId."),varData
     if type(varData) == dict:
         if type(varData["cadd"]["gene"]) == list:
             gene = getGeneFromGeneId(varData["cadd"]["gene"][0]["gene_id"])
@@ -249,15 +249,15 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
     elif type(varData) == list:
         gene = getGeneFromGeneId(varData[1]["cadd"]["gene"][1]["gene_id"])
     else:
-        return Exception("Unknown output format.")
-    return gene
+        return Exception("Unknown output format."),None
+    return gene,varData
 
 
 @app.route("/getVariantData", methods=["GET"])
 def getVariantsData():
     gene = int(request.args.get("gene"))
     variant = int(request.args.get("variant"))
-    return Response(response=session["table"]["variants"][gene][variant])
+    return Response(response=session["table"]["listofvariants"][gene][variant])
 
 
 @app.route("/annotate/<rowid>", methods=["GET"])
@@ -290,6 +290,7 @@ def expression(rowid):
     return render_template("visualization.html", table="No data available", dta="[]")
 
 
+
 def processVCFRecord(record, table, index):
     foundGene = False
     gene_dict = {}
@@ -308,13 +309,14 @@ def processVCFRecord(record, table, index):
         "summary": [],
         "clingen": [],
         "entrezgene": [],
-        "variantdata": []
+        "variantdata": [],
+        "listofvariants":[]
     }
 
     if record.ID:  # RsId exists
         # print("rsid exists")
         try:
-            gene = getGeneFromRsId(record.ID)
+            gene,variant = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
             foundGene = True
             getGeneInfo(gene.gene_id, subdict)
@@ -334,6 +336,26 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
+        varianthtml = "No data available"
+        variantdata = ""
+        if record.ID:
+            variant = variant_client.getvariant(record.ID, assembly="hg38")
+            count = 0
+            if type(variant) == dict:
+                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
+                html = json2html.convert(json = variant)
+                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+            elif type(variant) == list:
+                for var in variant:
+                    variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
+                    html = json2html.convert(json = var)
+                    subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                    count += 1
+        if variantdata:
+            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
+        print(subdict["listofvariants"])                
+        print("-------")
+        """
         civicdata = civic.findVariantsFromLocation(record.CHROM, record.POS)
         variantdata = ""
         varianthtml = "No data available"
@@ -352,14 +374,15 @@ def processVCFRecord(record, table, index):
                 subdict["variants"].append(json.dumps(vdata))
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
+        """
         subdict["variantdata"].append(varianthtml)
         # print(gene)
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants",
+                                                       "variants","listofvariants",
                                                        "variantdata", " "]:
                 subdict[key].append(str(gene_dict[key]))
-            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " "]:
+            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ","listofvariants"]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -404,7 +427,8 @@ def annotate():
         "clingen": [],
         "entrezgene": [],
         "variants": [],
-        "variantdata": []
+        "variantdata": [],
+        "listofvariants":[]
     }
     pool = Pool(os.cpu_count())
     count = 0
@@ -418,7 +442,7 @@ def annotate():
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
-            if item2[0] != "variants":
+            if item2[0] != "variants" and item2[0] != "listofvariants":
                 # print(len(item2[1]))
                 table[item2[0]].append(item2[1][0])
             else:
@@ -427,14 +451,14 @@ def annotate():
     # print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
-        if th != "variants":
+        if th != "variants" and th != "listofvariants":
             tablehtml += "<th>%s</th>" % th
     tablehtml += "</tr></thead><tbody>"
     count = len(list(table.values())[0])
     for c in range(count):
         tablehtml += "<tr>"
         for th in table:
-            if th != "variants":
+            if th != "variants" and th != "listofvariants":
                 tablehtml += "<td>%s</td>" % table[th][c]
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
