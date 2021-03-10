@@ -13,6 +13,7 @@ from multiprocessing import Process, Manager, Pool
 from flask_session import Session
 from json2html import *
 from civicdb import CivicDb
+import traceback
 import mapping  # mapping.remap()
 
 app = Flask(__name__)
@@ -292,6 +293,7 @@ def expression(rowid):
 
 
 def processVCFRecord(record, table, index):
+    print("new record")
     foundGene = False
     gene_dict = {}
     subdict = {
@@ -336,24 +338,56 @@ def processVCFRecord(record, table, index):
             foundGene = False
 
     if foundGene:
-        varianthtml = "No data available"
-        variantdata = ""
-        if record.ID:
-            variant = variant_client.getvariant(record.ID, assembly="hg38")
+        try:
+            varianthtml = "No data available"
+            variantdata = ""
+            hgsvs = []
+            if record.ALT:
+                for i in record.ALT:
+                    hgsvs.append(str(variant_client.format_hgvs(record.CHROM,record.POS,record.REF,str(i))))
+            print(hgsvs)
+            print(record.REF,": ",record.ALT)
             count = 0
-            if type(variant) == dict:
-                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
-                html = json2html.convert(json = variant)
-                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-            elif type(variant) == list:
-                for var in variant:
-                    variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
-                    html = json2html.convert(json = var)
-                    subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                    count += 1
+            if record.ID:
+                variant = variant_client.getvariant(record.ID, assembly="hg38")
+                if type(variant) == dict and "_id" in variant:
+                    print(str(variant["_id"]))
+                    if str(variant["_id"]) in hgsvs:
+                        variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
+                        html = json2html.convert(json = variant)
+                        subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                elif type(variant) == list:
+                    for var in variant:
+                        if "_id" not in var:
+                            continue
+                        print(str(var["_id"]))
+                        if str(var["_id"]) in hgsvs:
+                            variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
+                            html = json2html.convert(json = var)
+                            subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                            count += 1
+            elif hgsvs:
+                for hgsv in hgsvs:
+                    variant = variant_client.getvariant(hgsv, assembly="hg38")
+                    if type(variant) == dict:
+                        print(str(variant["_id"]))
+                        if str(variant["_id"]) in hgsvs:
+                            variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
+                            html = json2html.convert(json = variant)
+                            subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                    elif type(variant) == list:
+                        for var in variant:
+                            print(str(var["_id"]))
+                            if str(var["_id"]) in hgsvs:
+                                variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
+                                html = json2html.convert(json = var)
+                                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                                count += 1
+        except Exception as exp:
+            print(index,"- variant exp: ",exp)
+            print(traceback.format_exc())
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
-        print(subdict["listofvariants"])                
         print("-------")
         """
         civicdata = civic.findVariantsFromLocation(record.CHROM, record.POS)
