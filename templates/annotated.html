@@ -101,10 +101,13 @@
         var modal = document.getElementById("myModal");
         span.onclick = function() {
             modal.style.display = "none";
+            [...document.getElementsByTagName("select")]
+                .forEach(select => select.selectedIndex = 0);
         }
         window.onclick = event => {
-            if (event.target == modal) 
+            if (event.target == modal) {
                 modal.style.display = "none";
+            }
         }
     })
 
