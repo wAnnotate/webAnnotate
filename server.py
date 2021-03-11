@@ -290,6 +290,33 @@ def expression(rowid):
         return render_template("visualization.html", table=tablehtml, dta=json.dumps(dta))
     return render_template("visualization.html", table="No data available", dta="[]")
 
+def processVariantData(variant,count,hgsvs,index):
+    variantdata = None
+    if str(variant["_id"]) in hgsvs:
+        variantdata = '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
+        html = json2html.convert(json = variant)
+        return json.dumps({"header":"No header","body":html}),variantdata
+    return None,None
+
+def getVariantData(id,assembly,index,count,subdict,hgsvs,variantdata):
+    variant = variant_client.getvariant(id, assembly=assembly)
+    if type(variant) == dict and "_id" in variant:
+        vardict,vardata = processVariantData(variant,count,hgsvs,index)
+        if vardict:
+            variantdata += vardata
+            subdict["listofvariants"].append(vardict)
+            count += 1
+    elif type(variant) == list:
+        for var in variant:
+            if "_id" not in var:
+                continue
+            print(str(var["_id"]))
+            vardict,vardata = processVariantData(var,count,hgsvs,index)
+            if vardict:
+                variantdata += vardata
+                subdict["listofvariants"].append(vardict)
+                count += 1
+    return count,variantdata
 
 
 def processVCFRecord(record, table, index):
@@ -356,40 +383,10 @@ def processVCFRecord(record, table, index):
                 print(hgsvs)
                 print(record.REF,": ",record.ALT)
                 if record.ID:
-                    variant = variant_client.getvariant(record.ID, assembly=assembly)
-                    if type(variant) == dict and "_id" in variant:
-                        print(str(variant["_id"]))
-                        if str(variant["_id"]) in hgsvs:
-                            variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
-                            html = json2html.convert(json = variant)
-                            subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                    elif type(variant) == list:
-                        for var in variant:
-                            if "_id" not in var:
-                                continue
-                            print(str(var["_id"]))
-                            if str(var["_id"]) in hgsvs:
-                                variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
-                                html = json2html.convert(json = var)
-                                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                                count += 1
+                    count,variantdata = getVariantData(record.ID,assembly,index,count,subdict,hgsvs,variantdata)
                 elif hgsvs:
                     for hgsv in hgsvs:
-                        variant = variant_client.getvariant(hgsv, assembly=assembly)
-                        if type(variant) == dict:
-                            print(str(variant["_id"]))
-                            if str(variant["_id"]) in hgsvs:
-                                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
-                                html = json2html.convert(json = variant)
-                                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                        elif type(variant) == list:
-                            for var in variant:
-                                print(str(var["_id"]))
-                                if str(var["_id"]) in hgsvs:
-                                    variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
-                                    html = json2html.convert(json = var)
-                                    subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                                    count += 1
+                        count,variantdata = getVariantData(hgsv,assembly,index,count,subdict,hgsvs,variantdata)
         except Exception as exp:
             print(index,"- variant exp: ",exp)
             print(traceback.format_exc())
