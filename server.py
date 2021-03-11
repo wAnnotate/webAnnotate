@@ -339,37 +339,25 @@ def processVCFRecord(record, table, index):
 
     if foundGene:
         try:
-            varianthtml = "No data available"
-            variantdata = ""
-            hgsvs = []
-            if record.ALT:
-                for i in record.ALT:
-                    hgsvs.append(str(variant_client.format_hgvs(record.CHROM,record.POS,record.REF,str(i))))
-            print(hgsvs)
-            print(record.REF,": ",record.ALT)
             count = 0
-            if record.ID:
-                variant = variant_client.getvariant(record.ID, assembly="hg38")
-                if type(variant) == dict and "_id" in variant:
-                    print(str(variant["_id"]))
-                    if str(variant["_id"]) in hgsvs:
-                        variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
-                        html = json2html.convert(json = variant)
-                        subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                elif type(variant) == list:
-                    for var in variant:
-                        if "_id" not in var:
-                            continue
-                        print(str(var["_id"]))
-                        if str(var["_id"]) in hgsvs:
-                            variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
-                            html = json2html.convert(json = var)
-                            subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
-                            count += 1
-            elif hgsvs:
-                for hgsv in hgsvs:
-                    variant = variant_client.getvariant(hgsv, assembly="hg38")
-                    if type(variant) == dict:
+            for db in dbName.items():
+                mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], db[1], record.CHROM, record.POS)
+                if db[0] == 102:
+                    assembly = "hg38"
+                else:
+                    assembly = "hg19"
+                varianthtml = "No data available"
+                variantdata = ""
+                hgsvs = []
+                if record.ALT:
+                    for i in record.ALT:
+                        hgsvs.append(str(variant_client.format_hgvs(mappedChr,mappedPos,record.REF,str(i))))
+                print("hgsvs ",index)
+                print(hgsvs)
+                print(record.REF,": ",record.ALT)
+                if record.ID:
+                    variant = variant_client.getvariant(record.ID, assembly=assembly)
+                    if type(variant) == dict and "_id" in variant:
                         print(str(variant["_id"]))
                         if str(variant["_id"]) in hgsvs:
                             variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
@@ -377,12 +365,31 @@ def processVCFRecord(record, table, index):
                             subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
                     elif type(variant) == list:
                         for var in variant:
+                            if "_id" not in var:
+                                continue
                             print(str(var["_id"]))
                             if str(var["_id"]) in hgsvs:
                                 variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
                                 html = json2html.convert(json = var)
                                 subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
                                 count += 1
+                elif hgsvs:
+                    for hgsv in hgsvs:
+                        variant = variant_client.getvariant(hgsv, assembly=assembly)
+                        if type(variant) == dict:
+                            print(str(variant["_id"]))
+                            if str(variant["_id"]) in hgsvs:
+                                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["_id"])
+                                html = json2html.convert(json = variant)
+                                subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                        elif type(variant) == list:
+                            for var in variant:
+                                print(str(var["_id"]))
+                                if str(var["_id"]) in hgsvs:
+                                    variantdata += '<option value="%s-%s">%s</option>' % (index, count, var["_id"])
+                                    html = json2html.convert(json = var)
+                                    subdict["listofvariants"].append(json.dumps({"header":"No header","body":html}))
+                                    count += 1
         except Exception as exp:
             print(index,"- variant exp: ",exp)
             print(traceback.format_exc())
