@@ -369,30 +369,27 @@ def processVCFRecord(record, table, index):
     if foundGene:
         try:
             count = 0
-            for db in dbName.items():
-                mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], db[1], record.CHROM, record.POS)
-                if not mappedChr:
-                    continue
-                if db[0] == 102:
-                    assembly = "hg38"
-                else:
-                    assembly = "hg19"
-                varianthtml = "No data available"
-                variantdata = ""
-                hgsvs = []
-                if record.ALT:
-                    for i in record.ALT:
-                        hgsvs.append(str(variant_client.format_hgvs(mappedChr,mappedPos,record.REF,str(i))))
-                print("hgsvs ",index)
-                print(hgsvs)
-                print(record.REF,": ",record.ALT)
-                if record.ID:
-                    count,variantdata = getVariantData(record.ID,assembly,index,count,subdict,hgsvs,variantdata)
-                elif hgsvs:
-                    for hgsv in hgsvs:
-                        count,variantdata = getVariantData(hgsv,assembly,index,count,subdict,hgsvs,variantdata)
-                civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
-                print(civicdata)
+            mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
+            if str(session["dbChoice"]) == 102:
+                assembly = "hg38"
+            else:
+                assembly = "hg19"
+            varianthtml = "No data available"
+            variantdata = ""
+            hgsvs = []
+            if record.ALT:
+                for i in record.ALT:
+                    hgsvs.append(str(variant_client.format_hgvs(mappedChr,mappedPos,record.REF,str(i))))
+            print("hgsvs ",index)
+            print(hgsvs)
+            print(record.REF,": ",record.ALT)
+            if record.ID:
+                count,variantdata = getVariantData(record.ID,assembly,index,count,subdict,hgsvs,variantdata)
+            elif hgsvs:
+                for hgsv in hgsvs:
+                    count,variantdata = getVariantData(hgsv,assembly,index,count,subdict,hgsvs,variantdata)
+            civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
+            print(civicdata)
         except Exception as exp:
             print(index,"- variant exp: ",exp)
             print(traceback.format_exc())
