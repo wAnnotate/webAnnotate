@@ -319,6 +319,8 @@ def getVariantData(id,assembly,index,count,subdict,hgsvs,variantdata):
     return count,variantdata
 
 
+
+
 def processVCFRecord(record, table, index):
     print("new record")
     foundGene = False
@@ -369,6 +371,8 @@ def processVCFRecord(record, table, index):
             count = 0
             for db in dbName.items():
                 mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], db[1], record.CHROM, record.POS)
+                if not mappedChr:
+                    continue
                 if db[0] == 102:
                     assembly = "hg38"
                 else:
@@ -387,6 +391,8 @@ def processVCFRecord(record, table, index):
                 elif hgsvs:
                     for hgsv in hgsvs:
                         count,variantdata = getVariantData(hgsv,assembly,index,count,subdict,hgsvs,variantdata)
+                civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
+                print(civicdata)
         except Exception as exp:
             print(index,"- variant exp: ",exp)
             print(traceback.format_exc())
