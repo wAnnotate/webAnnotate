@@ -116,10 +116,11 @@
             return;
         var gene = select.value.split("-")[0]
         var index = select.value.split("-")[1]
+        var type = select.value.split("-")[2]
         var modal = document.getElementById("myModal");
         var modalHeader = document.getElementById("modalHeader");
         var modalBody = document.getElementById("modalBody");
-        fetch(`/getVariantData?gene=${gene}&variant=${index}`)
+        fetch(`/getVariantData?gene=${gene}&variant=${index}&type=${type}`)
             .then(data => data.json())
             .then(data => {
                 modalHeader.innerText = data["header"];

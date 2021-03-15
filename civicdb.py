@@ -90,9 +90,11 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         variants = []
         for v in self.variants.items():
             if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
+                v[1]["Id"] = v[0]
                 variants.append(v[1])
                 print(v[1]["start"], v[1]["stop"])
             elif v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
+                v[1]["Id"] = v[0]
                 variants.append(v[1])
         return variants
 
