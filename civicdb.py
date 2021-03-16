@@ -86,7 +86,6 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         for v in self.variants.items():
             if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
                 variants.append(v[1])
-                print(v[1]["start"], v[1]["stop"])
             elif v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
                 variants.append(v[1])
         return variants
@@ -126,7 +125,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         gene = self.findGene(variants[0]["gene"])
         return gene
 
-    def findVariantGroups(self, groups):
+    def findVariantGroups(self, groups):  # Gets variant_groups, returns variant groups
         variantGroups = []
         groups = groups.split(',')
         for g in groups:
@@ -135,17 +134,28 @@ class CivicDb:  # GRCh37 (Ensembl v75)
                     variantGroups.append(vg[1])
         return variantGroups
 
+    def findAssertions(self, assertionIds):  # Gets assertion_ids, returns assertions
+        assertions = []
+        assertionIds = assertionIds.split(',')
+        for aId in assertionIds:
+            for assertion in self.assertions.items():
+                if assertion[1]["assertion_id"] == aId:
+                    assertions.append(assertion[1])
+        return assertions
+
+    def findClinicalEvidences(self, variantId):  # Gets variant_id, returns clinical evidences
+        clinicalEvidences = []
+        for ce in self.clinicalEvidences.items():
+            if ce[1]["variant_id"] == variantId:
+                clinicalEvidences.append(ce[1])
+        return clinicalEvidences
+
 
 """
 db = CivicDb()
-
-for e in db.clinicalEvidences.items():
-    if e[1]["variant"] == "V617F":
-        for values in e[1].items():
-            print(values[0], " -> ", values[1])
-        print()
-print()
-for values in db.variants["64"].items():
-    print(values[0], " -> ", values[1])
+for cee in db.findClinicalEvidences(1):
+    for value in cee[1].items():
+        print(value[0], "->", value[1])
+    break
+print()"""
 # variant, representative_transcript, konum
-"""
