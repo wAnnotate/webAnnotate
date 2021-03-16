@@ -34,7 +34,6 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["assertion_id"]
-                del row["assertion_id"]
                 self.assertions[Id] = row
 
     def _constructClinicalEvidences(self):
@@ -49,7 +48,6 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["evidence_id"]
-                del row["evidence_id"]
                 self.clinicalEvidences[Id] = row
 
     def _constructGenes(self):
@@ -59,7 +57,6 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["gene_id"]
-                del row["gene_id"]
                 self.genes[Id] = row
 
     def _constructVariantGroups(self):
@@ -69,7 +66,6 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["variant_group_id"]
-                del row["variant_group_id"]
                 self.variantGroups[Id] = row
 
     def _constructVariants(self):
@@ -83,18 +79,15 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["variant_id"]
-                del row["variant_id"]
                 self.variants[Id] = row
 
     def findVariantsFromLocation(self, chromosome, location):  # Returns array of variant dicts
         variants = []
         for v in self.variants.items():
             if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
-                v[1]["Id"] = v[0]
                 variants.append(v[1])
                 print(v[1]["start"], v[1]["stop"])
             elif v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
-                v[1]["Id"] = v[0]
                 variants.append(v[1])
         return variants
 

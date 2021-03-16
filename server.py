@@ -34,6 +34,7 @@ app.config.from_object(__name__)
 Session(app)
 biothingsAssembly = "hg19"
 
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -229,11 +230,11 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
     if session["dbChoice"] == 102:
         varData = variant_client.getvariant(rsId, assembly="hg38")
         if varData is None:
-            return Exception("Gene not found from rsId."),varData
+            return Exception("Gene not found from rsId."), varData
     elif session["dbChoice"] == 75:
         varData = variant_client.getvariant(rsId, assembly="hg19")
         if varData is None:
-            return Exception("Gene not found from rsId."),varData
+            return Exception("Gene not found from rsId."), varData
     else:
         for assembly in ("hg19", "hg38"):
             varData = variant_client.getvariant(rsId, assembly=assembly)
@@ -241,7 +242,7 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
                 continue
             break
     if varData is None:
-        return Exception("Gene not found from rsId."),varData
+        return Exception("Gene not found from rsId."), varData
     if type(varData) == dict:
         if type(varData["cadd"]["gene"]) == list:
             gene = getGeneFromGeneId(varData["cadd"]["gene"][0]["gene_id"])
@@ -250,8 +251,8 @@ def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
     elif type(varData) == list:
         gene = getGeneFromGeneId(varData[1]["cadd"]["gene"][1]["gene_id"])
     else:
-        return Exception("Unknown output format."),None
-    return gene,varData
+        return Exception("Unknown output format."), None
+    return gene, varData
 
 
 @app.route("/getVariantData", methods=["GET"])
@@ -263,6 +264,7 @@ def getVariantsData():
         return Response(response=session["table"]["listofvariants"][gene][variant])
     return Response(response=session["table"]["listofvariantscivic"][gene][variant])
 
+
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
     rowid = int(rowid)
@@ -270,7 +272,7 @@ def expression(rowid):
     if "ncbi" in session["table"]["entrezgene"][rowid]:
         gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
         if requests.get(
-            "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).status_code == 500:
+                "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).status_code == 500:
             return render_template("visualization.html", table="No data available", dta="[]")
         data1 = requests.get(
             "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).text
@@ -292,18 +294,20 @@ def expression(rowid):
         return render_template("visualization.html", table=tablehtml, dta=json.dumps(dta))
     return render_template("visualization.html", table="No data available", dta="[]")
 
-def processVariantData(variant,count,hgsvs,index):
+
+def processVariantData(variant, count, hgsvs, index):
     variantdata = None
     if str(variant["_id"]) in hgsvs:
-        variantdata = '<option value="%s-%s-%s>%s</option>' % (index, count,"biothings", variant["_id"])
-        html = json2html.convert(json = variant)
-        return json.dumps({"header":"No header","body":html}),variantdata
-    return None,None
+        variantdata = '<option value="%s-%s-%s>%s</option>' % (index, count, "biothings", variant["_id"])
+        html = json2html.convert(json=variant)
+        return json.dumps({"header": "No header", "body": html}), variantdata
+    return None, None
 
-def getVariantData(id,assembly,index,count,subdict,hgsvs,variantdata):
+
+def getVariantData(id, assembly, index, count, subdict, hgsvs, variantdata):
     variant = variant_client.getvariant(id, assembly=assembly)
     if type(variant) == dict and "_id" in variant:
-        vardict,vardata = processVariantData(variant,count,hgsvs,index)
+        vardict, vardata = processVariantData(variant, count, hgsvs, index)
         if vardict:
             variantdata += vardata
             subdict["listofvariants"].append(vardict)
@@ -313,14 +317,12 @@ def getVariantData(id,assembly,index,count,subdict,hgsvs,variantdata):
             if "_id" not in var:
                 continue
             print(str(var["_id"]))
-            vardict,vardata = processVariantData(var,count,hgsvs,index)
+            vardict, vardata = processVariantData(var, count, hgsvs, index)
             if vardict:
                 variantdata += vardata
                 subdict["listofvariants"].append(vardict)
                 count += 1
-    return count,variantdata
-
-
+    return count, variantdata
 
 
 def processVCFRecord(record, table, index):
@@ -343,14 +345,14 @@ def processVCFRecord(record, table, index):
         "clingen": [],
         "entrezgene": [],
         "variantdata": [],
-        "listofvariants":[],
-        "listofvariantscivic":[]
+        "listofvariants": [],
+        "listofvariantscivic": []
     }
 
     if record.ID:  # RsId exists
         # print("rsid exists")
         try:
-            gene,variant = getGeneFromRsId(record.ID)
+            gene, variant = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
             foundGene = True
             getGeneInfo(gene.gene_id, subdict)
@@ -378,15 +380,17 @@ def processVCFRecord(record, table, index):
             hgsvs = []
             if record.ALT:
                 for i in record.ALT:
-                    hgsvs.append(str(variant_client.format_hgvs(mappedChr,mappedPos,record.REF,str(i))))
-            print("hgsvs ",index)
+                    hgsvs.append(str(variant_client.format_hgvs(mappedChr, mappedPos, record.REF, str(i))))
+            print("hgsvs ", index)
             print(hgsvs)
-            print(record.REF,": ",record.ALT)
+            print(record.REF, ": ", record.ALT)
             if record.ID:
-                count,variantdata = getVariantData(record.ID,biothingsAssembly,index,count,subdict,hgsvs,variantdata)
+                count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, subdict, hgsvs,
+                                                    variantdata)
             elif hgsvs:
                 for hgsv in hgsvs:
-                    count,variantdata = getVariantData(hgsv,biothingsAssembly,index,count,subdict,hgsvs,variantdata)
+                    count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
+                                                        variantdata)
             civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
             print(civicdata)
             count = 0
@@ -395,12 +399,12 @@ def processVCFRecord(record, table, index):
                 for key in keys:
                     if not var[key]:
                         del var[key]
-                variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["Id"])
-                html = json2html.convert(json = var)
-                subdict["listofvariantscivic"].append(json.dumps({"header":"Civic: " + var["variant"],"body":html}))
+                variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["variant_id"])
+                html = json2html.convert(json=var)
+                subdict["listofvariantscivic"].append(json.dumps({"header": "Civic: " + var["variant"], "body": html}))
                 count += 1
         except Exception as exp:
-            print(index,"- variant exp: ",exp)
+            print(index, "- variant exp: ", exp)
             print(traceback.format_exc())
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
@@ -429,10 +433,11 @@ def processVCFRecord(record, table, index):
         # print(gene)
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants","listofvariants",
-                                                       "variantdata", " ","listofvariantscivic"]:
+                                                       "variants", "listofvariants",
+                                                       "variantdata", " ", "listofvariantscivic"]:
                 subdict[key].append(str(gene_dict[key]))
-            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ","listofvariants","listofvariantscivic"]:
+            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ",
+                             "listofvariants", "listofvariantscivic"]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -478,8 +483,8 @@ def annotate():
         "entrezgene": [],
         "variants": [],
         "variantdata": [],
-        "listofvariants":[],
-        "listofvariantscivic":[]
+        "listofvariants": [],
+        "listofvariantscivic": []
     }
     pool = Pool(os.cpu_count())
     count = 0
