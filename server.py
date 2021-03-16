@@ -324,6 +324,13 @@ def getVariantData(id, assembly, index, count, subdict, hgsvs, variantdata):
                 count += 1
     return count, variantdata
 
+def formatListOfLists(listofdicts):
+    for dictionary in listofdicts:
+        keys = list(dictionary.keys())
+        for key in keys:
+            if not dictionary[key]:
+                del dictionary[key]
+    return listofdicts
 
 def processVCFRecord(record, table, index):
     print("new record")
@@ -395,9 +402,12 @@ def processVCFRecord(record, table, index):
             if civicdata:
                 count = 0
                 for var in civicdata:
-                    variant_groups = json2html.convert(json = civic.findVariantGroups(var["variant_groups"]))
-                    assertions = json2html.convert(json = civic.findAssertions(var["variant_id"]))
-                    clinical_significances = json2html.convert(json = civic.findClinicalEvidences(var["variant_id"]))
+                    variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"]))
+                    variant_groups = json2html.convert(json = variant_groups)
+                    assertions = formatListOfLists(civic.findAssertions(var["variant_id"]))
+                    assertions = json2html.convert(json = assertions)
+                    clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"]))
+                    clinical_significances = json2html.convert(json = clinical_significances)
                     keys = list(var.keys())
                     for key in keys:
                         if not var[key]:
