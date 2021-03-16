@@ -298,7 +298,7 @@ def expression(rowid):
 def processVariantData(variant, count, hgsvs, index):
     variantdata = None
     if str(variant["_id"]) in hgsvs:
-        variantdata = '<option value="%s-%s-%s>%s</option>' % (index, count, "biothings", variant["_id"])
+        variantdata = '<option value="%s-%s-%s">%s</option>' % (index, count, "biothings", variant["_id"])
         html = json2html.convert(json=variant)
         return json.dumps({"header": "No header", "body": html}), variantdata
     return None, None
