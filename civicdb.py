@@ -134,13 +134,11 @@ class CivicDb:  # GRCh37 (Ensembl v75)
                     variantGroups.append(vg[1])
         return variantGroups
 
-    def findAssertions(self, assertionIds):  # Gets assertion_ids, returns assertions
+    def findAssertions(self, variantId):  # Gets variant_id, returns assertions
         assertions = []
-        assertionIds = assertionIds.split(',')
-        for aId in assertionIds:
-            for assertion in self.assertions.items():
-                if assertion[1]["assertion_id"] == aId:
-                    assertions.append(assertion[1])
+        for a in self.assertions.items():
+            if a[1]["variant_id"] == variantId:
+                assertions.append(a[1])
         return assertions
 
     def findClinicalEvidences(self, variantId):  # Gets variant_id, returns clinical evidences
