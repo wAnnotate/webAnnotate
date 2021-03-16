@@ -176,6 +176,21 @@
         tab.style.display = "block";
     }
 
+    function createTab(name,data,display){
+        let tab = document.createElement("div");
+        tab.innerHTML = data;
+        tab.style.display = display;
+        tab.id = name;
+        tab.className = "tab";
+        [...tab.firstElementChild.getElementsByTagName("td")]
+            .forEach(td => {
+                if(td.innerText.includes("https")){
+                    td.innerHTML = `<a href="${td.innerText}">${td.innerText}</a>`
+                }
+            })
+        return tab;
+    }
+
     function toggleModal(select){
         if(!select.value)
             return;
@@ -192,41 +207,18 @@
             .then(data => {
                 modalHeader.innerText = data["header"];
                 if(type == "civic"){
-                    modalBody.innerHTML = ""
-                    let clinical_significances = document.createElement("div");
-                    let assertions = document.createElement("div");
-                    let groups = document.createElement("div");
-                    let general = document.createElement("div");
-                    let gene = document.createElement("div");
-                    clinical_significances.innerHTML = data["clinical"];
-                    assertions.innerHTML = data["assertions"];
-                    groups.innerHTML = data["groups"];
-                    general.innerHTML = data["general"];
-                    gene.innerHTML = data["gene"];
-                    clinical_significances.style.display = "none";
-                    assertions.style.display = "none";
-                    groups.style.display = "none";
-                    gene.style.display = "none";
-                    general.style.display = "block";
-                    modalBody.append(clinical_significances);
-                    modalBody.append(assertions);
-                    modalBody.append(groups);
-                    modalBody.append(general);
-                    modalBody.append(gene);
-                    clinical_significances.id = "clinical";
-                    assertions.id = "assertions";
-                    groups.id = "groups";
-                    general.id = "general";
-                    gene.id = "gene";
-                    clinical_significances.className = "tab";
-                    assertions.className = "tab";
-                    groups.className = "tab";
-                    general.className = "tab";
-                    gene.className = "tab";
                     let tab_names = ["general","clinical","assertions","groups","gene"];
+                    modalBody.innerHTML = ""
                     for(let i =0;i<5;i++){
                         if(!data[tab_names[i]])
                             continue;
+                        modalBody.append(
+                            createTab(
+                                tab_names[i],
+                                data[tab_names[i]],
+                                tab_names[i] == "general" ? "block" : "none" 
+                            )
+                        )
                         let button = document.createElement("button");
                         button.className = "btn btn-lg " + tab_names[i];
                         button.innerText = tab_names[i];

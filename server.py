@@ -403,11 +403,11 @@ def processVCFRecord(record, table, index):
                 count = 0
                 for var in civicdata:
                     variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"]))
-                    variant_groups = json2html.convert(json = variant_groups)
+                    variant_groups = json2html.convert(json = variant_groups, escape = False)
                     assertions = formatListOfLists(civic.findAssertions(var["variant_id"]))
-                    assertions = json2html.convert(json = assertions)
+                    assertions = json2html.convert(json = assertions, escape = False)
                     clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"]))
-                    clinical_significances = json2html.convert(json = clinical_significances)
+                    clinical_significances = json2html.convert(json = clinical_significances, escape = False)
                     keys = list(var.keys())
                     for key in keys:
                         if not var[key]:
@@ -418,6 +418,7 @@ def processVCFRecord(record, table, index):
                     print(assertions)
                     print(clinical_significances)
                     civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos)
+                    civicdatagene = formatListOfLists([civicdatagene])
                     genehtml = json2html.convert(json = civicdatagene)
                     subdict["listofvariantscivic"].append(json.dumps(
                         {
