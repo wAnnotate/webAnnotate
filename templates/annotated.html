@@ -3,8 +3,6 @@
 <script defer>
     function generateDataTable(id,cols){
         $("#"+id).dataTable({
-             
-             dom: 'lBfrtip',
                   "orderable": false,
                   "columnDefs": [
                       {
@@ -136,39 +134,46 @@
             modal.style.display = "none";
             [...document.getElementsByTagName("select")]
                 .forEach(select => select.selectedIndex = 0);
+            [...document.getElementsByClassName("page-link")]
+                .forEach(l => l.setAttribute("style","z-index: 1"))
         }
         window.onclick = event => {
             if (event.target == modal) {
                 modal.style.display = "none";
+                [...document.getElementsByClassName("page-link")]
+                    .forEach(l => l.setAttribute("style","z-index: 1"))
             }
         }
     })
 
     function showMyTab(tabButton){
-        let id = tabButton.className;
+        let id = tabButton.className.split(" ").pop();
         let tab = document.getElementById(id);
         [...document.getElementsByClassName("tab")]
             .forEach(tab => tab.style.display = "None");
-        tab.style.display = "block";
-        tab.firstElementChild.id = "variantTable";
         let cols = []
         if(id == "clinical"){
             for(let i = 10;i<tab.firstElementChild.getElementsByTagName("td").length;i++){
                 cols.push(i);
             }
-        }
-        let td = document.createElement("td");
-        let th = document.createElement("th");
-        th.innerText = " ";
-        tab.firstElementChild.firstElementChild.firstElementChild.prepend(th);
-        td.innerHTML = `
+            if(tab.getAttribute("name") != "true"){
+                tab.setAttribute("name","true");
+                tab.firstElementChild.id = "variantTable";
+                let td = document.createElement("td");
+                let th = document.createElement("th");
+                th.innerText = " ";
+                tab.firstElementChild.firstElementChild.firstElementChild.prepend(th);
+                td.innerHTML = `
                 <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
                 +
                 </button>
-        `;
-        [...tab.firstElementChild.getElementsByTagName("tr")]
-            .forEach(tr => tr.prepend(td));
-        generateDataTable("variantTable",cols)
+                `;
+                [...tab.firstElementChild.getElementsByTagName("tr")]
+                    .forEach(tr => tr.prepend(td));
+                generateDataTable("variantTable",cols);
+            }
+        }
+        tab.style.display = "block";
     }
 
     function toggleModal(select){
@@ -215,7 +220,7 @@
                     let tab_names = ["general","clinical","assertions","groups"];
                     for(let i =0;i<4;i++){
                         let button = document.createElement("button");
-                        button.className = tab_names[i];
+                        button.className = "btn btn-lg " + tab_names[i];
                         button.innerText = tab_names[i];
                         button.onclick = () => showMyTab(button);
                         tab_buttons.append(button);
@@ -224,7 +229,8 @@
                 else
                     modalBody.innerHTML = data["body"];
                 modal.style.display = "block";
-                
+                [...document.getElementsByClassName("page-link")]
+                    .forEach(l => l.setAttribute("style","z-index: -1"))
             })
     }
 </script>
