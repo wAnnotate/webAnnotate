@@ -42,27 +42,27 @@
             {
                 extend: 'csv',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
                 }
             },
             
             {
                 extend: 'excel',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
                 }
             },
             
             {
                 extend: 'print',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
                 }
             }
             ],
              "columnDefs": [
                  {
-                     "targets": [11,12,13],
+                     "targets": [11,12],
                      "class":"none"
                  },
                  {
@@ -197,28 +197,36 @@
                     let assertions = document.createElement("div");
                     let groups = document.createElement("div");
                     let general = document.createElement("div");
-                    clinical_significances.innerHTML = data["clinical_significances"];
+                    let gene = document.createElement("div");
+                    clinical_significances.innerHTML = data["clinical"];
                     assertions.innerHTML = data["assertions"];
                     groups.innerHTML = data["groups"];
-                    general.innerHTML = data["body"];
+                    general.innerHTML = data["general"];
+                    gene.innerHTML = data["gene"];
                     clinical_significances.style.display = "none";
                     assertions.style.display = "none";
                     groups.style.display = "none";
+                    gene.style.display = "none";
                     general.style.display = "block";
                     modalBody.append(clinical_significances);
                     modalBody.append(assertions);
                     modalBody.append(groups);
                     modalBody.append(general);
+                    modalBody.append(gene);
                     clinical_significances.id = "clinical";
                     assertions.id = "assertions";
                     groups.id = "groups";
                     general.id = "general";
+                    gene.id = "gene";
                     clinical_significances.className = "tab";
                     assertions.className = "tab";
                     groups.className = "tab";
                     general.className = "tab";
-                    let tab_names = ["general","clinical","assertions","groups"];
-                    for(let i =0;i<4;i++){
+                    gene.className = "tab";
+                    let tab_names = ["general","clinical","assertions","groups","gene"];
+                    for(let i =0;i<5;i++){
+                        if(!data[tab_names[i]])
+                            continue;
                         let button = document.createElement("button");
                         button.className = "btn btn-lg " + tab_names[i];
                         button.innerText = tab_names[i];
