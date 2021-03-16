@@ -1,6 +1,39 @@
 {% extends "main.html" %}
 {% block content %}
 <script defer>
+    function generateDataTable(id,cols){
+        $("#"+id).dataTable({
+             
+             dom: 'lBfrtip',
+                  "orderable": false,
+                  "columnDefs": [
+                      {
+                          "targets": cols,
+                          "class":"none"
+                      },
+                      {
+                          "orderable": false,
+                          "aaSorting": false,
+                          "targets": "_all",
+                      },
+                      {
+                         "targets": [0],
+                         "className": 'details-control',
+                     }
+                  ],
+                  
+                  "iDisplayLength": 2,
+                  "aLengthMenu": [[2,5, 10, 25, 50, 100, -1], [2,5, 10, 25, 50, 100, "All"]],
+                  "language": {
+                      "paginate": {
+                          "previous": "previous",
+                          "next": "next"
+                      }
+                  },
+                  responsive: true,
+              })
+    }
+
     function toNormalDataTable() {
         $("#table").dataTable({
              
@@ -11,27 +44,27 @@
             {
                 extend: 'csv',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
                 }
             },
             
             {
                 extend: 'excel',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
                 }
             },
             
             {
                 extend: 'print',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14 ]
                 }
             }
             ],
              "columnDefs": [
                  {
-                     "targets": [11,12],
+                     "targets": [11,12,13],
                      "class":"none"
                  },
                  {
@@ -111,6 +144,33 @@
         }
     })
 
+    function showMyTab(tabButton){
+        let id = tabButton.className;
+        let tab = document.getElementById(id);
+        [...document.getElementsByClassName("tab")]
+            .forEach(tab => tab.style.display = "None");
+        tab.style.display = "block";
+        tab.firstElementChild.id = "variantTable";
+        let cols = []
+        if(id == "clinical"){
+            for(let i = 10;i<tab.firstElementChild.getElementsByTagName("td").length;i++){
+                cols.push(i);
+            }
+        }
+        let td = document.createElement("td");
+        let th = document.createElement("th");
+        th.innerText = " ";
+        tab.firstElementChild.firstElementChild.firstElementChild.prepend(th);
+        td.innerHTML = `
+                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                +
+                </button>
+        `;
+        [...tab.firstElementChild.getElementsByTagName("tr")]
+            .forEach(tr => tr.prepend(td));
+        generateDataTable("variantTable",cols)
+    }
+
     function toggleModal(select){
         if(!select.value)
             return;
@@ -120,12 +180,51 @@
         var modal = document.getElementById("myModal");
         var modalHeader = document.getElementById("modalHeader");
         var modalBody = document.getElementById("modalBody");
+        var tab_buttons = document.getElementById("tab_buttons");
+        tab_buttons.innerHTML = ""
         fetch(`/getVariantData?gene=${gene}&variant=${index}&type=${type}`)
             .then(data => data.json())
             .then(data => {
                 modalHeader.innerText = data["header"];
-                modalBody.innerHTML = data["body"];
+                if(type == "civic"){
+                    modalBody.innerHTML = ""
+                    let clinical_significances = document.createElement("div");
+                    let assertions = document.createElement("div");
+                    let groups = document.createElement("div");
+                    let general = document.createElement("div");
+                    clinical_significances.innerHTML = data["clinical_significances"];
+                    assertions.innerHTML = data["assertions"];
+                    groups.innerHTML = data["groups"];
+                    general.innerHTML = data["body"];
+                    clinical_significances.style.display = "none";
+                    assertions.style.display = "none";
+                    groups.style.display = "none";
+                    general.style.display = "block";
+                    modalBody.append(clinical_significances);
+                    modalBody.append(assertions);
+                    modalBody.append(groups);
+                    modalBody.append(general);
+                    clinical_significances.id = "clinical";
+                    assertions.id = "assertions";
+                    groups.id = "groups";
+                    general.id = "general";
+                    clinical_significances.className = "tab";
+                    assertions.className = "tab";
+                    groups.className = "tab";
+                    general.className = "tab";
+                    let tab_names = ["general","clinical","assertions","groups"];
+                    for(let i =0;i<4;i++){
+                        let button = document.createElement("button");
+                        button.className = tab_names[i];
+                        button.innerText = tab_names[i];
+                        button.onclick = () => showMyTab(button);
+                        tab_buttons.append(button);
+                    }
+                }
+                else
+                    modalBody.innerHTML = data["body"];
                 modal.style.display = "block";
+                
             })
     }
 </script>
@@ -135,6 +234,7 @@
             <span class="close">&times;</span>
             <h2 id="modalHeader">Modal Header</h2>
         </div>
+        <div id="tab_buttons"></div>
         <div class="modal-body" id="modalBody">
         </div>
     </div>

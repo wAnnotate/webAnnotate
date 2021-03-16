@@ -122,6 +122,7 @@ def constructannotation():
         "strand": [],
         "genome": [],
         "summary": [],
+        "description":[],
         "clingen": [],
         "entrezgene": []
     }
@@ -151,7 +152,7 @@ def constructannotation():
                 </button>
             """)
     ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
-           "start", "end", "strand", "genome", "summary", "clingen", "entrezgene", ]
+           "start", "end", "strand", "genome", "summary","description", "clingen", "entrezgene", ]
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in ths:
         tablehtml += "<th>%s</th>" % th
@@ -171,7 +172,7 @@ def constructannotation():
 def prevAnnotated():
     if "table" in session:
         ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
-               "start", "end", "strand", "genome", "summary", "clingen", "entrezgene",
+               "start", "end", "strand", "genome", "summary","description", "clingen", "entrezgene",
                "variantdata"]
         table = session["table"].copy()
         tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
@@ -342,6 +343,7 @@ def processVCFRecord(record, table, index):
         "strand": [],
         "genome": [],
         "summary": [],
+        "description":[],
         "clingen": [],
         "entrezgene": [],
         "variantdata": [],
@@ -392,20 +394,41 @@ def processVCFRecord(record, table, index):
                     count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
                                                         variantdata)
             civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
-            print(civicdata)
-            count = 0
-            for var in civicdata:
-                keys = list(var.keys())
-                for key in keys:
-                    if not var[key]:
-                        del var[key]
-                variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["variant_id"])
-                html = json2html.convert(json=var)
-                subdict["listofvariantscivic"].append(json.dumps({"header": "Civic: " + var["variant"], "body": html}))
-                count += 1
+            if civicdata:
+                count = 0
+                for var in civicdata:
+                    variant_groups = json2html.convert(json = civic.findVariantGroups(var["variant_groups"]))
+                    assertions = json2html.convert(json = civic.findAssertions(var["variant_id"]))
+                    clinical_significances = json2html.convert(json = civic.findClinicalEvidences(var["variant_id"]))
+                    keys = list(var.keys())
+                    for key in keys:
+                        if not var[key]:
+                            del var[key]
+                    variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["variant_id"])
+                    html = json2html.convert(json=var)
+                    print(variant_groups)
+                    print(assertions)
+                    print(clinical_significances)
+                    subdict["listofvariantscivic"].append(json.dumps(
+                        {
+                            "header": "Civic: " + var["variant"], 
+                            "body": html,
+                            "groups": variant_groups,
+                            "assertions": assertions,
+                            "clinical_significances": clinical_significances
+                        }))
+                    count += 1
+                civicdata = civic.findGeneFromLocation(mappedChr,mappedPos)
+                if civicdata["description"]:
+                    subdict["description"].append(civicdata["description"])
+                else:
+                    subdict["description"].append("No data available")
+                print(civicdata)
         except Exception as exp:
             print(index, "- variant exp: ", exp)
             print(traceback.format_exc())
+        if not civicdata:
+            subdict["description"].append("No data available")
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
         print("-------")
@@ -433,11 +456,11 @@ def processVCFRecord(record, table, index):
         # print(gene)
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants", "listofvariants",
+                                                       "variants", "listofvariants","description",
                                                        "variantdata", " ", "listofvariantscivic"]:
                 subdict[key].append(str(gene_dict[key]))
             elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ",
-                             "listofvariants", "listofvariantscivic"]:
+                             "listofvariants", "listofvariantscivic","description"]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -479,6 +502,7 @@ def annotate():
         "strand": [],
         "genome": [],
         "summary": [],
+        "description": [],
         "clingen": [],
         "entrezgene": [],
         "variants": [],
