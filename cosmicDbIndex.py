@@ -42,3 +42,4 @@ if __name__ == '__main__':
     print("Committing changes...")
     conn.commit()
     print("Finished.")
+    conn.close()

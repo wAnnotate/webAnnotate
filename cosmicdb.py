@@ -22,9 +22,6 @@ def executeQuery(connection, query, t=()):
         cursor = connection.cursor()
         cursor.execute(query, t)
         rows = cursor.fetchall()
-        for row in rows:
-            print(row)
-            print()
         return rows
     except Error as err:
         print(err)
@@ -49,13 +46,14 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
             return Exception("Unsupported assembly.")
 
         conn = createConnection(dbFile=cmcExportDbPath)
-        values = executeQuery(conn, query, (chr, pos, pos))
-        return values
+        rows = executeQuery(conn, query, (chr, pos, pos))
+        return rows
 
 
+"""
 db = CosmicDb()
 
-db.findVariantsFromLocation("GRCh37", "1", 69224)
+db.findVariantsFromLocation("GRCh37", "1", 69224)"""
 """with open("CosmicMutantExportCensus.tsv", mode='r') as tsvFile:
     tsvReader = csv.DictReader(tsvFile, delimiter='\t')
     index = 0
