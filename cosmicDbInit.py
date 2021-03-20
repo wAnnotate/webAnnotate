@@ -2,6 +2,7 @@ import csv
 import sqlite3
 from sqlite3 import Error
 from datetime import datetime
+import cosmicDbIndex
 
 cmcExportTsvPath = "cosmic/cmc_export.tsv"
 cmcExportDbPath = "cosmic/sqlite/cmc_export.db"
@@ -189,6 +190,14 @@ if __name__ == '__main__':
     print()
     print(index, "lines added.")
     print("Passed time:", after - before)
+
+    print("Indexing rows...")
+    before = datetime.now()
+    cosmicDbIndex.indexDb(c)
+    after = datetime.now()
+    print("Rows indexed.")
+    print("Passed time:", after - before)
+
     print("Committing changes...")
     c.commit()
     print("Finished.")
