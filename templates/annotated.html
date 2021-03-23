@@ -182,12 +182,13 @@
         tab.style.display = display;
         tab.id = name;
         tab.className = "tab";
-        [...tab.firstElementChild.getElementsByTagName("td")]
-            .forEach(td => {
-                if(td.innerText.includes("https")){
-                    td.innerHTML = `<a href="${td.innerText}">${td.innerText}</a>`
-                }
-            })
+        if (tab.firstElementChild)
+            [...tab.firstElementChild.getElementsByTagName("td")]
+                .forEach(td => {
+                    if(td.innerText.includes("https")){
+                        td.innerHTML = `<a href="${td.innerText}">${td.innerText}</a>`;
+                    }
+                });
         return tab;
     }
 
@@ -226,8 +227,27 @@
                         tab_buttons.append(button);
                     }
                 }
-                else
-                    modalBody.innerHTML = data["body"];
+                else{
+                    modalBody.innerHTML = "";
+                    console.log(data);
+                    [...Object.keys(data)].forEach(key => {
+                        if(key != "header"){
+                            modalBody.append(
+                                createTab(
+                                    key,
+                                    data[key],
+                                    key == "cadd" ? "block" : "none" 
+                                )
+                            )
+                            let button = document.createElement("button");
+                            button.className = "btn btn-lg " + key;
+                            button.innerText = key;
+                            button.onclick = () => showMyTab(button);
+                            tab_buttons.append(button);
+                        }
+                    })
+                    //modalBody.innerHTML = data["body"];
+                }
                 modal.style.display = "block";
                 [...document.getElementsByClassName("page-link")]
                     .forEach(l => l.setAttribute("style","z-index: -1"))

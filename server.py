@@ -299,8 +299,14 @@ def processVariantData(variant, count, hgsvs, index):
     variantdata = None
     if str(variant["_id"]) in hgsvs:
         variantdata = '<option value="%s-%s-%s">%s</option>' % (index, count, "biothings", variant["_id"])
-        html = json2html.convert(json=variant)
-        return json.dumps({"header": "Biothings: " + str(variant["_id"]), "body": html}), variantdata
+        observed = "observed" if variant["observed"] else "not observed"
+        varDict = {
+            "header":"Biothings: " + str(variant["_id"] + " (" + observed + ")")
+        }
+        for key in variant:
+            if variant[key] and key not in ["_id","_version","chrom","hg19","observed"]:
+                varDict[key] = json2html.convert(json=variant[key])
+        return json.dumps(varDict), variantdata
     return None, None
 
 
