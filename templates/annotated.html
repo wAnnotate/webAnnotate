@@ -110,6 +110,14 @@
          })
 
     }
+    function showMainTabs(btn){
+        [...document.getElementById("sub_tab_buttons").children]
+            .forEach(child => child.style.display = "none");
+        [...document.getElementById("tab_buttons").children]
+            .forEach(child => child.style.display = "block");
+        btn.style.display = "none";
+
+    }
     setTimeout(()=>toNormalDataTable(),2000);
     function toggleFilter(){
         let filterB = document.getElementById("fltr");
@@ -176,12 +184,14 @@
         tab.style.display = "block";
     }
 
-    function createTab(name,data,display){
+    function createTab(name,data,display,isSubTab = false,topName = null){
         let tab = document.createElement("div");
         tab.innerHTML = data;
         tab.style.display = display;
+        if(isSubTab)
+            name = name + "---" + topName
         tab.id = name;
-        tab.className = "tab";
+        tab.className = !isSubTab ? "tab" : "subtab"
         if (tab.firstElementChild)
             [...tab.firstElementChild.getElementsByTagName("td")]
                 .forEach(td => {
@@ -190,6 +200,52 @@
                     }
                 });
         return tab;
+    }
+
+    function showSubTabButtons(btn){
+        [...document.getElementById("tab_buttons").children]
+            .forEach(child => child.style.display = "None");
+        [...document.getElementById("sub_tab_buttons").children]
+            .forEach(child =>{
+                if(child.className.split(" ")[2] == btn.className.split(" ")[2])
+                    child.style.display = "inline-block";
+                else
+                    child.style.display = "none";
+            })
+        document.getElementById("back").style.display = "inline-block";
+    }
+
+    function showMySubTab(btn){
+        let id = btn.className.split(" ").pop()+ "---" + btn.className.split(" ")[2];
+        let tab = document.getElementById(id);
+        [...document.getElementsByClassName("subtab")]
+            .forEach(tab => tab.style.display = "None");
+        [...document.getElementsByClassName("tab")]
+            .forEach(tab => tab.style.display = "None");
+        let cols = []
+        if(id == "clinical"){
+            for(let i = 10;i<tab.firstElementChild.getElementsByTagName("td").length;i++){
+                cols.push(i);
+            }
+            if(tab.getAttribute("name") != "true"){
+                tab.setAttribute("name","true");
+                tab.firstElementChild.id = "variantTable";
+                let td = document.createElement("td");
+                let th = document.createElement("th");
+                th.innerText = " ";
+                tab.firstElementChild.firstElementChild.firstElementChild.prepend(th);
+                td.innerHTML = `
+                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                +
+                </button>
+                `;
+                [...tab.firstElementChild.getElementsByTagName("tr")]
+                    .forEach(tr => tr.prepend(td));
+                generateDataTable("variantTable",cols);
+            }
+        }
+        tab.style.display = "block";
+
     }
 
     function toggleModal(select){
@@ -202,7 +258,11 @@
         var modalHeader = document.getElementById("modalHeader");
         var modalBody = document.getElementById("modalBody");
         var tab_buttons = document.getElementById("tab_buttons");
+        tab_buttons.style.display = "inline-block";
+        var sub_tab_buttons = document.getElementById("sub_tab_buttons");
+        sub_tab_buttons.style.display = "inline-block";
         tab_buttons.innerHTML = ""
+        sub_tab_buttons.innerHTML = ""
         fetch(`/getVariantData?gene=${gene}&variant=${index}&type=${type}`)
             .then(data => data.json())
             .then(data => {
@@ -232,18 +292,44 @@
                     console.log(data);
                     [...Object.keys(data)].forEach(key => {
                         if(key != "header"){
-                            modalBody.append(
-                                createTab(
-                                    key,
-                                    data[key],
-                                    key == "cadd" ? "block" : "none" 
+                            if(typeof data[key] === 'object'){
+                                [...Object.keys(data[key])].forEach(
+                                    key2 => {
+                                        modalBody.append(
+                                            createTab(
+                                                key2,
+                                                data[key][key2],
+                                                "none",
+                                                true,
+                                                key 
+                                            )
+                                        )
+                                        let button = document.createElement("button");
+                                        button.className = "btn btn-lg " + key + " " + key2;
+                                        button.innerText = key2;
+                                        button.style.display = "none";
+                                        sub_tab_buttons.append(button);
+                                        button.onclick = () => showMySubTab(button);
+                                    }
                                 )
-                            )
+                            }
+                            else{
+                                modalBody.append(
+                                    createTab(
+                                        key,
+                                        data[key],
+                                        key == "cadd" ? "block" : "none" 
+                                    )
+                                )
+                            }
                             let button = document.createElement("button");
                             button.className = "btn btn-lg " + key;
                             button.innerText = key;
-                            button.onclick = () => showMyTab(button);
                             tab_buttons.append(button);
+                            if(typeof data[key] !== 'object')
+                                button.onclick = () => showMyTab(button);
+                            else
+                                button.onclick = () => showSubTabButtons(button);
                         }
                     })
                     //modalBody.innerHTML = data["body"];
@@ -260,7 +346,9 @@
             <span class="close">&times;</span>
             <h2 id="modalHeader">Modal Header</h2>
         </div>
+        <button style="display: none;" id="back" onclick="showMainTabs(this)">Back</button>
         <div id="tab_buttons"></div>
+        <div id="sub_tab_buttons"></div>
         <div class="modal-body" id="modalBody">
         </div>
     </div>

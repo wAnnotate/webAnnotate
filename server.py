@@ -305,7 +305,12 @@ def processVariantData(variant, count, hgsvs, index):
         }
         for key in variant:
             if variant[key] and key not in ["_id","_version","chrom","hg19","observed"]:
-                varDict[key] = json2html.convert(json=variant[key])
+                if type(variant[key]) != dict:
+                    varDict[key] = json2html.convert(json=variant[key])
+                elif type(variant[key]) == dict:
+                    varDict[key] = {}
+                    for key2 in variant[key]:
+                        varDict[key][key2] = json2html.convert(json=variant[key][key2])
         return json.dumps(varDict), variantdata
     return None, None
 
