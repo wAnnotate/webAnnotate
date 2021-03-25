@@ -114,9 +114,98 @@
         [...document.getElementById("sub_tab_buttons").children]
             .forEach(child => child.style.display = "none");
         [...document.getElementById("tab_buttons").children]
-            .forEach(child => child.style.display = "block");
+            .forEach(child => child.style.display = "inline-block");
+        [...document.getElementsByClassName("subtab")]
+            .forEach(subtab => subtab.style.display = "none")
         btn.style.display = "none";
 
+    }
+    function showGraph(graph){
+        let table = document.getElementById(graph).firstElementChild;
+        var chart = () => {
+            const svg = d3.create("svg")
+                .attr("viewBox", [0, 0, width, height]);
+      
+            const bar = svg.append("g")
+                .attr("fill", "steelblue")
+                .selectAll("rect")
+                .data(data)
+                .join("rect")
+                .style("mix-blend-mode", "multiply")
+                .attr("x", d => x(d.name))
+                .attr("y", d => y(d.value))
+                .attr("height", d => y(0) - y(d.value))
+                .attr("width", x.bandwidth());
+      
+            const gx = svg.append("g")
+                .call(xAxis);
+      
+            const gy = svg.append("g")
+                .call(yAxis);
+    
+            return Object.assign(svg.node(), {
+                update(order) {
+                    x.domain(data.sort(order).map(d => d.name));
+    
+            const t = svg.transition()
+                .duration(150);
+    
+            bar.data(data, d => d.name)
+                .order()
+                .transition(t)
+                .delay((d, i) => i * 20)
+                .attr("x", d => x(d.name));
+    
+            gx.transition(t)
+                .call(xAxis)
+                .selectAll(".tick")
+                .delay((d, i) => i * 20);
+            }
+        });
+    }
+
+        var data = [];
+        [...table.rows].forEach(row => {
+            if(!row.innerHTML.includes("graph")){
+                let name = row.firstElementChild.innerText;
+                let value = row.lastElementChild.innerText;
+                data.push({
+                    name: name,
+                    value: value
+                });
+            }
+        })
+        var height = 450;
+        var width = 1500;
+        var margin = ({top: 50, right: 0, bottom: 130, left: 50});
+        var x = d3.scaleBand()
+            .domain(data.map(d => d.name))
+            .range([margin.left, width - margin.right])
+            .padding(0.1)
+        var y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.value)]).nice()
+            .range([height - margin.bottom, margin.top])
+        var xAxis = g => g
+            .attr("transform", `translate(0,${height - margin.bottom})`)
+            .call(d3.axisBottom(x).tickSizeOuter(0))
+            .selectAll("text")
+                .style("text-anchor", "end")
+                .style("font", "18px times")
+                .attr("dx", "-.9em")
+                .attr("dy", "-.2em")
+                .attr("transform", function(d) {
+                    return "rotate(-90)"
+                });
+        var yAxis = g => g
+            .attr("transform", `translate(${margin.left},0)`)
+            .call(d3.axisLeft(y))
+            .call(g => g.select(".domain").remove())
+        let chartDiv = document.getElementById("chart"+graph);
+        setTimeout(() => {
+            chartDiv.innerHTML = "";
+            chartDiv.append(chart());
+            chartDiv.style.display = "inner-block";
+        }, 2000); 
     }
     setTimeout(()=>toNormalDataTable(),2000);
     function toggleFilter(){
