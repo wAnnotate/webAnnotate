@@ -376,6 +376,27 @@
                         tab_buttons.append(button);
                     }
                 }
+                else if(type == "cosmic"){
+                    let tab_names = ["variant","resistanceMutations"];
+                    modalBody.innerHTML = ""
+                    for(let i =0;i<5;i++){
+                        if(!data[tab_names[i]])
+                            continue;
+                        modalBody.append(
+                            createTab(
+                                tab_names[i],
+                                data[tab_names[i]],
+                                tab_names[i] == "general" ? "block" : "none" 
+                            )
+                        )
+                        let button = document.createElement("button");
+                        button.className = "btn btn-lg " + tab_names[i];
+                        button.innerText = tab_names[i];
+                        button.onclick = () => showMyTab(button);
+                        tab_buttons.append(button);
+                    }
+
+                }
                 else{
                     modalBody.innerHTML = "";
                     console.log(data);

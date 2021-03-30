@@ -13,6 +13,7 @@ from multiprocessing import Process, Manager, Pool
 from flask_session import Session
 from json2html import *
 from civicdb import CivicDb
+from cosmicdb import CosmicDb
 import traceback
 import mapping  # mapping.remap()
 
@@ -29,6 +30,7 @@ SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
 variant_client = get_client('variant')
 civic = CivicDb()
+cosmic = CosmicDb()
 manager = Manager()
 app.config.from_object(__name__)
 Session(app)
@@ -260,10 +262,11 @@ def getVariantsData():
     gene = int(request.args.get("gene"))
     variant = int(request.args.get("variant"))
     variantType = str(request.args.get("type"))
-    if variantType != "civic":
+    if variantType != "civic" and variantType != "cosmic":
         return Response(response=session["table"]["listofvariants"][gene][variant])
-    return Response(response=session["table"]["listofvariantscivic"][gene][variant])
-
+    elif variantType == "civic":
+        return Response(response=session["table"]["listofvariantscivic"][gene][variant])
+    return Response(response=session["table"]["listofvariantscosmic"][gene][variant])
 
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
@@ -373,7 +376,8 @@ def processVCFRecord(record, table, index):
         "entrezgene": [],
         "variantdata": [],
         "listofvariants": [],
-        "listofvariantscivic": []
+        "listofvariantscivic": [],
+        "listofvariantscosmic": []
     }
 
     if record.ID:  # RsId exists
@@ -450,6 +454,30 @@ def processVCFRecord(record, table, index):
                             "clinical": clinical_significances
                         }))
                     count += 1
+            cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos)
+            if not cosmicdata:
+                mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
+                cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
+            if cosmicdata:
+                count = 0
+                for row in cosmicdata:
+                    resistanceMutationsHtml = ""
+                    keys = list(row.keys())
+                    for key in keys:
+                        if not row[key]:
+                            del row[key]
+                    variantData = json2html.convert(json = row, escape=False)
+                    if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
+                        resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
+                        if resistanceMutations:
+                            resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
+                    subdict["listofvariantscosmic"].append(json.dumps({
+                        "header": "Cosmic: " + str(row["id"]),
+                        "variant": variantData,
+                        "resistanceMutations": resistanceMutationsHtml
+                    }))
+                    variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "cosmic", row["id"])
+                    count += 1
         except Exception as exp:
             print(index, "- variant exp: ", exp)
             print(traceback.format_exc())
@@ -481,10 +509,10 @@ def processVCFRecord(record, table, index):
         for key in subdict.keys():
             if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                                        "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic"]:
+                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
                 subdict[key].append(str(gene_dict[key]))
             elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ",
-                             "listofvariants", "listofvariantscivic","description"]:
+                             "listofvariants", "listofvariantscivic","description","listofvariantscosmic"]:
                 subdict[key].append("No data available")
         subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
         subdict[" "].append("""
@@ -531,7 +559,8 @@ def annotate():
         "variants": [],
         "variantdata": [],
         "listofvariants": [],
-        "listofvariantscivic": []
+        "listofvariantscivic": [],
+        "listofvariantscosmic": []
     }
     pool = Pool(os.cpu_count())
     count = 0
@@ -545,7 +574,7 @@ def annotate():
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
-            if item2[0] != "variants" and item2[0] != "listofvariants" and item2[0] != "listofvariantscivic":
+            if item2[0] != "variants" and item2[0] != "listofvariants" and item2[0] != "listofvariantscivic" and item2[0] != "listofvariantscosmic":
                 # print(len(item2[1]))
                 table[item2[0]].append(item2[1][0])
             else:
@@ -554,14 +583,14 @@ def annotate():
     # print(table)
     tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     for th in table:
-        if th != "variants" and th != "listofvariants" and th != "listofvariantscivic":
+        if th != "variants" and th != "listofvariants" and th != "listofvariantscivic" and th != "listofvariantscosmic":
             tablehtml += "<th>%s</th>" % th
     tablehtml += "</tr></thead><tbody>"
     count = len(list(table.values())[0])
     for c in range(count):
         tablehtml += "<tr>"
         for th in table:
-            if th != "variants" and th != "listofvariants" and th != "listofvariantscivic":
+            if th != "variants" and th != "listofvariants" and th != "listofvariantscivic" and th != "listofvariantscosmic":
                 tablehtml += "<td>%s</td>" % table[th][c]
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"

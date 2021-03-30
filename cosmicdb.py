@@ -8,6 +8,12 @@ cgcPath = "static/cosmicdb/cancer_gene_census.csv"
 cmcExportDbPath = "cosmic/sqlite/cmc_export.db"
 
 
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 def createConnection(dbFile):
     connection = None
     try:
@@ -20,12 +26,14 @@ def createConnection(dbFile):
 def executeQuery(connection, query, t=()):
     try:
         cursor = connection.cursor()
+        connection.row_factory = sqlite3.Row
         cursor.execute(query, t)
-        rows = cursor.fetchall()
-        return rows
+        rows = cursor.fetchmany()
+        keys = list(map(lambda x: x[0], cursor.description))
+        return rows,keys
     except Error as err:
         print(err)
-        return None
+        return None,None
 
 
 class CosmicDb:  # GRCh37 (Ensembl v75)
@@ -82,8 +90,15 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
             return Exception("Unsupported assembly.")
 
         conn = createConnection(dbFile=cmcExportDbPath)
-        rows = executeQuery(conn, query, (chr, pos, pos))
-        return rows
+        rows,keys = executeQuery(conn, query, (chr, pos, pos))
+        row_dict_list = []
+        if rows:
+            for row in rows:
+                row_dict = {}
+                for index in range(len(row)):
+                    row_dict[keys[index]] = row[index]
+                row_dict_list.append(row_dict)
+        return row_dict_list
 
     def findGeneFromLocation(self, chr, pos):  # GRCh37 position required, returns dict or None
         chr = str(chr)
