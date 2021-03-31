@@ -15,6 +15,7 @@ from json2html import *
 from civicdb import CivicDb
 from cosmicdb import CosmicDb
 import traceback
+import time
 import mapping  # mapping.remap()
 
 app = Flask(__name__)
@@ -530,6 +531,7 @@ def processVCFRecord(record, table, index):
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
+    start = time.time()
     session["dbChoice"] = int(request.form["db"])
     print("DB choice:", session["dbChoice"])
     global data
@@ -594,6 +596,7 @@ def annotate():
                 tablehtml += "<td>%s</td>" % table[th][c]
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
+    print("time passed:",time.time()-start)
     return render_template("annotated.html", table=tablehtml)
 
 
