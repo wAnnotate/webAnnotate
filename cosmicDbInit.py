@@ -171,7 +171,7 @@ if __name__ == '__main__':
 
     print("Inserting values...")
     before = datetime.now()
-    with open(cmcExportTsvPath, mode='r') as tsvFile:
+    with open(cmcExportTsvPath, mode='r', encoding="utf-8") as tsvFile:
         tsvReader = csv.DictReader(tsvFile, delimiter='\t')
         c = createConnection(cmcExportDbPath)
         index = 0

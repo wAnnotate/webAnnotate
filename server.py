@@ -9,7 +9,7 @@ from biothings_client import get_client
 import json
 import os
 import csv
-from multiprocessing import Process, Manager, Pool
+from multiprocessing import Process, Manager, Pool, freeze_support
 from flask_session import Session
 from json2html import *
 from civicdb import CivicDb
@@ -601,4 +601,5 @@ def annotate():
 
 
 if __name__ == "__main__":
+    freeze_support()
     app.run()
