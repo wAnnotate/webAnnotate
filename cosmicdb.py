@@ -14,6 +14,7 @@ def dict_factory(cursor, row):
         d[col[0]] = row[idx]
     return d
 
+
 def createConnection(dbFile):
     connection = None
     try:
@@ -52,7 +53,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
         Primary Tissue	Tissue Subtype 1	Tissue Subtype 2	Histology	Histology Subtype 1	Histology Subtype 2
         Pubmed Id	CGP Study	Somatic Status	Sample Type	Zygosity	Genome Coordinates (GRCh37)	Tier
         HGVSP	HGVSC	HGVSG"""
-        with open(resistanceMutationsPath, mode='r', encoding="utf-8") as tsvFile:
+        with open(resistanceMutationsPath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["Sample ID"]
@@ -60,7 +61,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
 
     def _constructHGNC(self):
         """COSMIC_ID	COSMIC_GENE_NAME	Entrez_id	HGNC_ID	Mutated?	Cancer_census?	Expert Curated?"""
-        with open(HGNCPath, mode='r', encoding="utf-8") as tsvFile:
+        with open(HGNCPath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["Entrez_id"]
@@ -70,7 +71,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
         """Gene Symbol,Name,Entrez GeneId,Genome Location,Tier,Hallmark,Chr Band,Somatic,Germline,
         Tumour Types(Somatic),Tumour Types(Germline),Cancer Syndrome,Tissue Type,Molecular Genetics,Role in Cancer,
         Mutation Types,Translocation Partner,Other Germline Mut,Other Syndrome,Synonyms"""
-        with open(cgcPath, mode='r', encoding="utf-8") as csvFile:
+        with open(cgcPath, mode='r') as csvFile:
             csvReader = csv.DictReader(csvFile, delimiter=',')
             for row in csvReader:
                 Id = row["Entrez GeneId"]

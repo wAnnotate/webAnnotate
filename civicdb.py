@@ -30,7 +30,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         assertion_id
         evidence_item_ids	variant_id  gene_id last_review_date    assertion_civic_url evidence_items_civic_url
         variant_civic_url	gene_civic_url"""
-        with open(assertionPath, mode='r', encoding="utf-8") as tsvFile:
+        with open(assertionPath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["assertion_id"]
@@ -44,7 +44,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         variant_id	gene_id	chromosome start	stop	reference_bases	variant_bases	representative_transcript
         chromosome2	start2	stop2   representative_transcript2	ensembl_version	reference_build	variant_summary
         variant_origin	last_review_date    evidence_civic_url	variant_civic_url	gene_civic_url"""
-        with open(clinicalEvidencePath, mode='r', encoding="utf-8") as tsvFile:
+        with open(clinicalEvidencePath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["evidence_id"]
@@ -53,7 +53,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
     def _constructGenes(self):
         """gene_id
         gene_civic_url  name    entrez_id   description last_review_date"""
-        with open(genePath, mode='r', encoding="utf-8") as tsvFile:
+        with open(genePath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["gene_id"]
@@ -62,7 +62,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
     def _constructVariantGroups(self):
         """variant_group_id
         variant_group_civic_url	variant_group	description	last_review_date"""
-        with open(variantGroupPath, mode='r', encoding="utf-8") as tsvFile:
+        with open(variantGroupPath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["variant_group_id"]
@@ -75,7 +75,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         stop2   representative_transcript2  variant_types   hgvs_expressions    last_review_date
         civic_variant_evidence_score    allele_registry_id  clinvar_ids variant_aliases	assertion_ids
         assertion_civic_urls"""
-        with open(variantPath, mode='r', encoding="utf-8") as tsvFile:
+        with open(variantPath, mode='r') as tsvFile:
             tsvReader = csv.DictReader(tsvFile, delimiter='\t')
             for row in tsvReader:
                 Id = row["variant_id"]
