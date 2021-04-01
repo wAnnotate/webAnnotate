@@ -312,7 +312,7 @@ def processVariantData(variant, count, hgsvs, index):
                 if type(variant[key]) != dict or all(isinstance(x, float) for x in list(variant[key].values())):
                     if len(list(variant[key].values())) > 2 and all(isinstance(x, float) for x in list(variant[key].values())):
                         variant[key]["graph"] = """
-                                                    <button onclick="showGraph('%s')">Show Graph</button>
+                                                    <button onclick="showGraph('%s',this)">Show Graph</button>
                                                 """ % (key)
                     varDict[key] = json2html.convert(json=variant[key])
                 elif type(variant[key]) == dict:
@@ -320,7 +320,7 @@ def processVariantData(variant, count, hgsvs, index):
                     for key2 in variant[key]:
                         if type(variant[key][key2]) == dict and all(isinstance(x, float) for x in list(variant[key][key2].values())):
                             variant[key][key2]["graph"] = """
-                                                    <button onclick="showGraph('%s---%s')">Show Graph</button>
+                                                    <button onclick="showGraph('%s---%s',this)">Show Graph</button>
                                                 """ % (key2,key)
                         varDict[key][key2] = json2html.convert(json=variant[key][key2],escape = False)
                         varDict[key][key2] += "<div id='chart%s---%s'></div>" % (key2,key)

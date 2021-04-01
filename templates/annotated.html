@@ -121,7 +121,15 @@
         document.body.style.zoom = "100%";
 
     }
-    function showGraph(graph){
+    function showGraph(graph,btn){
+        if(!btn.innerText.includes("Show")){
+            btn.innerText = "Show Graph";
+            document.body.style.zoom = "100%";
+            chartDiv.style.display = "None";
+            chartDiv.innerHTML = "";
+            return;
+        }
+
         let table = document.getElementById(graph).firstElementChild;
         var chart = () => {
             const svg = d3.create("svg")
@@ -207,7 +215,8 @@
             chartDiv.append(chart());
             chartDiv.style.display = "inner-block";
             document.body.style.zoom = "300%";
-            window.location = "#"+graph;
+            btn.innerText = "Hide Graph";
+            window.location = "#"+"chart"+graph;
         }, 2000); 
     }
     setTimeout(()=>toNormalDataTable(),2000);
