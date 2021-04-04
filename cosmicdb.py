@@ -31,10 +31,10 @@ def executeQuery(connection, query, t=()):
         cursor.execute(query, t)
         rows = cursor.fetchmany()
         keys = list(map(lambda x: x[0], cursor.description))
-        return rows,keys
+        return rows, keys
     except Error as err:
         print(err)
-        return None,None
+        return None, None
 
 
 class CosmicDb:  # GRCh37 (Ensembl v75)
@@ -91,7 +91,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
             return Exception("Unsupported assembly.")
 
         conn = createConnection(dbFile=cmcExportDbPath)
-        rows,keys = executeQuery(conn, query, (chr, pos, pos))
+        rows, keys = executeQuery(conn, query, (chr, pos, pos))
         row_dict_list = []
         if rows:
             for row in rows:
@@ -140,8 +140,9 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
 """
 db = CosmicDb()
 
-gene = db.findResistanceMutations("COSM49140")
-for g in gene:
-    print(g)
-    print()
-"""
+genes = db.findVariantsFromLocation("GRCh37", 7, 140453136)
+for gs in genes:
+    print("1")
+    for g in gs.items():
+        print(g[0], "-> ", g[1])
+        print()"""

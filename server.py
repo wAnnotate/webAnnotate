@@ -17,6 +17,7 @@ from cosmicdb import CosmicDb
 import traceback
 import time
 import mapping  # mapping.remap()
+import universalKeys as dictKeys  # selected dict keys and their descriptions
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
