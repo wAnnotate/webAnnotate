@@ -48,7 +48,7 @@ cosmicCGC = []
 cosmicHGNC = []
 
 cosmicDescriptions = {}
-f = open("cosmic/README.txt", "r")
+f = open("static/cosmicdb/README.txt", "r")
 f.readline()
 f.readline()
 file = f.read().split("\n")
