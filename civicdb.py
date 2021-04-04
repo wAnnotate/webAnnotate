@@ -137,22 +137,23 @@ class CivicDb:  # GRCh37 (Ensembl v75)
     def findAssertions(self, variantId):  # Gets variant_id, returns assertions
         assertions = []
         for a in self.assertions.items():
-            if a[1]["variant_id"] == variantId:
+            if a[1]["variant_id"] == str(variantId):
                 assertions.append(a[1])
         return assertions
 
     def findClinicalEvidences(self, variantId):  # Gets variant_id, returns clinical evidences
         clinicalEvidences = []
         for ce in self.clinicalEvidences.items():
-            if ce[1]["variant_id"] == variantId:
+            if ce[1]["variant_id"] == str(variantId):
                 clinicalEvidences.append(ce[1])
         return clinicalEvidences
 
 
 """
 db = CivicDb()
-for cee in db.findClinicalEvidences(1):
-    for value in cee[1].items():
+fcee = db.findClinicalEvidences(64)
+for cee in fcee:
+    for value in cee.items():
         print(value[0], "->", value[1])
     break
 print()"""
