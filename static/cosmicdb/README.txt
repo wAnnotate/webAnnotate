@@ -1,4 +1,4 @@
-Description of columns in the cmc_export.tsv file
+Description of columns in the cmc_export.tsv file (MODIFIED)
 
 GENE_NAME - The gene name for which the data has been curated in COSMIC. In most cases this is the accepted HGNC symbol
 ACCESSION_NUMBER - The transcript identifier of the gene
@@ -52,7 +52,7 @@ GNOMAD_GENOMES_OTH_AF - Alternative allele frequency in other gnomAD genome samp
 CLINVAR_CLNSIG - clinical significance as to the clinvar data set. 0 - unknown, 1 - untested, 2 - Benign, 3 - Likely benign, 4 - Likely pathogenic, 5 - Pathogenic, 6 - drug response, 7 - histocompatibility. A negative score means the the score is for the ref allele
 CLINVAR_TRAIT - the trait/disease the CLINVAR_CLNSIG referring to
 CLINVAR_GOLDEN_STARS - ClinVar Review Status summary. 0 - no assertion criteria provided, 1 - criteria provided, single submitter, 2 - criteria provided, multiple submitters, no conflicts, 3 - reviewed by expert panel, 4 - practice guideline
-GERP++_RS - GERP++ RS score, the larger the score, the more conserved the site. Scores range from -12.3 to 6.17
+GERP_RS - GERP++ RS score, the larger the score, the more conserved the site. Scores range from -12.3 to 6.17
 MIN_SIFT_SCORE - Minimum SIFT score (SIFTori). Scores range from 0 to 1. The smaller the score the more likely the SNP has damaging effect
 MIN_SIFT_PRED - Prediction corresponding to the minimum sift score. If SIFTori is smaller than 0.05 the corresponding nsSNV is predicted as "D(amaging)"; otherwise it is predicted as "T(olerated)"
 DNDS_DISEASE_QVAL - dn/ds diseases with significant q-values (q-value < 0.05), analysed from TCGA whole-exome data in COSMIC. Diseases are classified into AML, HNSCC, NSCLC, bladder, breast, cervical, colon, endometrioid, gastric, glioma, kidney, liver, melanoma, ovary, pancreatic, prostate, sarcoma, thyroid

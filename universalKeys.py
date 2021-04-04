@@ -47,6 +47,7 @@ cosmicResistanceMutations = [
 cosmicCGC = []
 cosmicHGNC = []
 
+#############
 cosmicDescriptions = {}
 f = open("static/cosmicdb/README.txt", "r")
 f.readline()
@@ -59,6 +60,7 @@ for line in file:
     v = v.split(" (", 1)[0].split(".", 1)[0].split(",", 1)[0]
     cosmicDescriptions[k] = v
 f.close()
+#############
 
 
 def cosmicDesc(key):
