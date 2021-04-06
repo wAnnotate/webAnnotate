@@ -23,7 +23,8 @@ def remap(asm_from, asm_to, chromosome, location):  # Remaps from one assembly t
         return decoded["mappings"][0]["mapped"]["seq_region_name"], decoded["mappings"][0]["mapped"]["start"]
     except:
         print(decoded)
-        return None,None
+        return None, None
+
 
 """
 remapped = remap("NCBI36", "GRCh38", 16, 50745926)

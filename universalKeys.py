@@ -70,3 +70,5 @@ def cosmicDesc(key):
     elif key in cosmicResistanceMutations:
         description += key
     return description
+
+# BioThings keys
