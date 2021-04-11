@@ -39,6 +39,8 @@ Session(app)
 biothingsAssembly = "hg19"
 
 
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -357,10 +359,17 @@ def formatListOfLists(listofdicts):
                 del dictionary[key]
     return listofdicts
 
-def processVCFRecord(record, table, index):
+def processVCFRecord(record, table, index, nnewtable):
     print("new record")
     foundGene = False
     gene_dict = {}
+    main_sub_dict = {
+        index:{
+            "Civic":[],
+            "Cosmic":[]
+        }
+    }
+    
     subdict = {
         " ": [],
         "expression": [],
@@ -424,28 +433,57 @@ def processVCFRecord(record, table, index):
                 for hgsv in hgsvs:
                     count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
                                                         variantdata)
-            civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos)
+            civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos).copy()
             if civicdata:
                 count = 0
                 for var in civicdata:
-                    variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"]))
+                    variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
+                    assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
+                    clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
+                    civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
+                    civicdatagene = formatListOfLists([civicdatagene])
+                    for cs in clinical_significances:
+                        keys = list(cs.keys())
+                        for key in keys:
+                            if key not in dictKeys.civicClinicalEvidences:
+                                del cs[key]
+                    
+                    for cs in assertions:
+                        keys = list(cs.keys())
+                        for key in keys:
+                            if key not in dictKeys.civicAssertions:
+                                del cs[key]
+                    for cs in variant_groups:
+                        keys = list(cs.keys())
+                        for key in keys:
+                            if key not in dictKeys.civicVariantGroups:
+                                del cs[key]
+                    for cs in civicdatagene:
+                        keys = list(cs.keys())
+                        for key in keys:
+                            if key not in dictKeys.civicGenes:
+                                del cs[key]
                     variant_groups = json2html.convert(json = variant_groups, escape = False)
-                    assertions = formatListOfLists(civic.findAssertions(var["variant_id"]))
                     assertions = json2html.convert(json = assertions, escape = False)
-                    clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"]))
                     clinical_significances = json2html.convert(json = clinical_significances, escape = False)
+                    genehtml = json2html.convert(json = civicdatagene, escape=False)
                     keys = list(var.keys())
                     for key in keys:
-                        if not var[key]:
+                        if key in ["variant_id","variant"]:
+                            continue
+                        if not var[key] or key not in dictKeys.civicVariants:
                             del var[key]
+                            continue
+                        
+                        data = var[key]
+                        var[dictKeys.civicDesc(key)] = data
+                        del var[key]
+                    print(var)
                     variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["variant_id"])
                     html = json2html.convert(json=var)
                     print(variant_groups)
                     print(assertions)
                     print(clinical_significances)
-                    civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos)
-                    civicdatagene = formatListOfLists([civicdatagene])
-                    genehtml = json2html.convert(json = civicdatagene)
                     subdict["listofvariantscivic"].append(json.dumps(
                         {
                             "header": "Civic: " + var["variant"], 
@@ -455,6 +493,14 @@ def processVCFRecord(record, table, index):
                             "assertions": assertions,
                             "clinical": clinical_significances
                         }))
+                    CivicDict = {
+                        "Variants":html,
+                        "Variant Groups":variant_groups,
+                        "Genes":genehtml,
+                        "Assertions":assertions,
+                        "Clinical Evidences":clinical_significances,
+                    }
+                    main_sub_dict["Civic"][index].append(CivicDict)
                     count += 1
             cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos)
             if not cosmicdata:
@@ -464,20 +510,29 @@ def processVCFRecord(record, table, index):
                 count = 0
                 for row in cosmicdata:
                     resistanceMutationsHtml = ""
-                    keys = list(row.keys())
-                    for key in keys:
-                        if not row[key]:
-                            del row[key]
-                    variantData = json2html.convert(json = row, escape=False)
                     if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
                         resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
                         if resistanceMutations:
                             resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
+                    keys = list(row.keys())
+                    for key in keys:
+                        if (key not in dictKeys.cosmicCGC or not row[key]) and key != "id":
+                            del row[key]
+                        elif key != "id":
+                            row[dictKeys.cosmicDesc(key)] = row[key]
+                            del row[key]
+                        
+                    variantData = json2html.convert(json = row, escape=False)
                     subdict["listofvariantscosmic"].append(json.dumps({
                         "header": "Cosmic: " + str(row["id"]),
                         "variant": variantData,
                         "resistanceMutations": resistanceMutationsHtml
                     }))
+                    CosmicDict = {
+                        "CMC":variantData,
+                        "Resistance Mutations":resistanceMutationsHtml
+                    }
+                    main_sub_dict["Cosmic"][index].append(CosmicDict)
                     variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "cosmic", row["id"])
                     count += 1
         except Exception as exp:
@@ -486,26 +541,30 @@ def processVCFRecord(record, table, index):
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
         print("-------")
-        """
-        civicdata = civic.findVariantsFromLocation(record.CHROM, record.POS)
-        variantdata = ""
-        varianthtml = "No data available"
-        count = 0
-        for variant in civicdata:
-            vdata = {}
-            print(variant)
-            if "variant" in variant:
-                variantdata += '<option value="%s-%s">%s</option>' % (index, count, variant["variant"])
-                vdata["header"] = variant["variant"]
-                if "summary" in variant and variant["summary"]:
-                    vdata["body"] = variant["summary"]
+        resultDict = {
+
+        }
+        keys = ["Cosmic","Civic"] if len(main_sub_dict["Cosmic"][index]) > len(main_sub_dict["Civic"][index]) else ["Civic","Cosmic"]
+        for i in range(len(main_sub_dict[keys[0]][index])):
+            if i > len(main_sub_dict[key[1]][index])-1:
+                if key[1] == "Cosmic":
+                    main_sub_dict["Cosmic"][index].append(
+                        {
+                            "CMC":"No data available",
+                            "Resistance Mutations":"No data availabe"
+                        }
+                    )
                 else:
-                    vdata["body"] = "No data Available"
-                count += 1
-                subdict["variants"].append(json.dumps(vdata))
-        if variantdata:
-            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
-        """
+                    main_sub_dict["Civic"][index].append(
+                        {
+                            "Variants":"No data available",
+                            "Variant Groups":"No data available",
+                            "Genes":"No data available",
+                            "Assertions":"No data available",
+                            "Clinical Evidences":"No data available",
+                        }
+                    )
+
         subdict["variantdata"].append(varianthtml)
         # print(gene)
         for key in subdict.keys():
@@ -528,7 +587,8 @@ def processVCFRecord(record, table, index):
                 subdict[key].append("No data available")
         subdict[" "].append("")
     table[index] = subdict
-
+    nnewtable["Cosmic"][index] = main_sub_dict["Cosmic"]
+    nnewtable["Civic"][index] = main_sub_dict["Civic"]
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
@@ -543,6 +603,36 @@ def annotate():
     file = TextIOWrapper(file)
     # print(type(file))
     vcf_reader = vcf.Reader(file)
+    mainKeys = '''
+                <label for="Cosmic">
+                    <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                   Cosmic
+                </label>
+                <label for="Civic">
+                    <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                   Civic
+                </label>
+                <label for="Cadd">
+                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                   Cadd
+                </label>
+                ''' 
+    subKeys = {
+        "Cosmic":["CMC","Resistance Mutations"],
+        "Civic":["Variants","Variant Groups","Genes","Assertions", "Clinical Evidences"]
+    }
+
+    allKeys = {
+        "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
+        "Civic-Variant Groups": [dictKeys.civicDesc(k) for k in dictKeys.civicVariantGroups],
+        "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
+        "Civic-Assertions":[dictKeys.civicDesc(k) for k in dictKeys.civicAssertions],
+        "Civic-Clinical Evidences":[dictKeys.civicDesc(k) for k in dictKeys.civicClinicalEvidences],
+        "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
+        "Cosmic-Resistance Mutations": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicResistanceMutations],
+    }
+
+
     ttable = manager.dict()
     table = {
         " ": [],
@@ -565,11 +655,15 @@ def annotate():
         "listofvariantscivic": [],
         "listofvariantscosmic": []
     }
+    newtable = {
+        "Cosmic": {},
+        "Civic":{},
+    }
     pool = Pool(os.cpu_count())
     count = 0
     processes = []
     for record in vcf_reader:
-        pool.apply_async(processVCFRecord, (record, ttable, count))
+        pool.apply_async(processVCFRecord, (record, ttable, count, newtable))
         count += 1
     pool.close()
     pool.join()
@@ -598,7 +692,7 @@ def annotate():
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
     print("time passed:",time.time()-start)
-    return render_template("annotated.html", table=tablehtml)
+    return render_template("annotated.html", table=tablehtml, mainKeys = mainKeys, subkeys = json.dumps(subKeys), allKeys = json.dumps(allKeys), allData = json.dumps(newtable))
 
 
 if __name__ == "__main__":
