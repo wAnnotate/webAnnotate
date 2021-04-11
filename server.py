@@ -494,13 +494,13 @@ def processVCFRecord(record, table, index, nnewtable):
                             "clinical": clinical_significances
                         }))
                     CivicDict = {
-                        "Variants":html,
-                        "Variant Groups":variant_groups,
-                        "Genes":genehtml,
-                        "Assertions":assertions,
-                        "Clinical Evidences":clinical_significances,
+                        "Variants":html if html else "No data available",
+                        "Variant Groups":variant_groups if variant_groups else "No data available",
+                        "Genes":genehtml if genehtml else "No data avaliable",
+                        "Assertions":assertions if assertions else "No data available",
+                        "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
                     }
-                    main_sub_dict["Civic"][index].append(CivicDict)
+                    main_sub_dict[index]["Civic"].append(CivicDict)
                     count += 1
             cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos)
             if not cosmicdata:
@@ -529,10 +529,10 @@ def processVCFRecord(record, table, index, nnewtable):
                         "resistanceMutations": resistanceMutationsHtml
                     }))
                     CosmicDict = {
-                        "CMC":variantData,
-                        "Resistance Mutations":resistanceMutationsHtml
+                        "CMC":variantData if variantData else "No data available",
+                        "Resistance Mutations":resistanceMutationsHtml if resistanceMutationsHtml else "No data available"
                     }
-                    main_sub_dict["Cosmic"][index].append(CosmicDict)
+                    main_sub_dict[index]["Cosmic"].append(CosmicDict)
                     variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "cosmic", row["id"])
                     count += 1
         except Exception as exp:
@@ -541,21 +541,18 @@ def processVCFRecord(record, table, index, nnewtable):
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
         print("-------")
-        resultDict = {
-
-        }
-        keys = ["Cosmic","Civic"] if len(main_sub_dict["Cosmic"][index]) > len(main_sub_dict["Civic"][index]) else ["Civic","Cosmic"]
-        for i in range(len(main_sub_dict[keys[0]][index])):
-            if i > len(main_sub_dict[key[1]][index])-1:
-                if key[1] == "Cosmic":
-                    main_sub_dict["Cosmic"][index].append(
+        keys = ["Cosmic","Civic"] if len(main_sub_dict[index]["Cosmic"]) > len(main_sub_dict[index]["Civic"]) else ["Civic","Cosmic"]
+        for i in range(len(main_sub_dict[index][keys[0]])):
+            if i > len(main_sub_dict[index][keys[1]])-1:
+                if keys[1] == "Cosmic":
+                    main_sub_dict[index]["Cosmic"].append(
                         {
                             "CMC":"No data available",
                             "Resistance Mutations":"No data availabe"
                         }
                     )
                 else:
-                    main_sub_dict["Civic"][index].append(
+                    main_sub_dict[index]["Civic"].append(
                         {
                             "Variants":"No data available",
                             "Variant Groups":"No data available",
@@ -564,6 +561,7 @@ def processVCFRecord(record, table, index, nnewtable):
                             "Clinical Evidences":"No data available",
                         }
                     )
+        print("subdict: ", main_sub_dict)
 
         subdict["variantdata"].append(varianthtml)
         # print(gene)
@@ -587,8 +585,11 @@ def processVCFRecord(record, table, index, nnewtable):
                 subdict[key].append("No data available")
         subdict[" "].append("")
     table[index] = subdict
-    nnewtable["Cosmic"][index] = main_sub_dict["Cosmic"]
-    nnewtable["Civic"][index] = main_sub_dict["Civic"]
+    if len(main_sub_dict[index]["Cosmic"]) > 0:
+        nnewtable[str(index)] = {
+            "Cosmic":main_sub_dict[index]["Cosmic"],
+            "Civic":main_sub_dict[index]["Civic"]
+        }
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
@@ -655,10 +656,9 @@ def annotate():
         "listofvariantscivic": [],
         "listofvariantscosmic": []
     }
-    newtable = {
-        "Cosmic": {},
-        "Civic":{},
-    }
+    newtable = manager.dict()
+    nnewtable = {}
+
     pool = Pool(os.cpu_count())
     count = 0
     processes = []
@@ -668,6 +668,14 @@ def annotate():
     pool.close()
     pool.join()
     count = len(list(ttable.keys()))
+    print(newtable)
+    for key in newtable:
+        nnewtable[key] = {}
+        for key2 in newtable[key]:
+            nnewtable[key][key2] = []
+            for element in newtable[key][key2]:
+                nnewtable[key][key2].append(element)
+
     for c in range(count):
         table["rowid"].append(c)
         for item2 in ttable[c].items():
@@ -691,8 +699,35 @@ def annotate():
                 tablehtml += "<td>%s</td>" % table[th][c]
         tablehtml += "</tr>"
     tablehtml += "</tbody></table>"
+    newtablehtml = ""
+    newtablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
+    newtablehtml += "<th>Row Index</th>"
+    for key in allKeys:
+        newtablehtml += "<th>%s</th>" % key
+    newtablehtml += "</tr>"
+    newtablehtml += "</tr></thead><tbody>"
+    c = 0
+    for item in list(nnewtable.items()):
+        for subitem in zip(item[1]["Cosmic"],item[1]["Civic"]):
+            newtablehtml += "<tr><td>%s</td>" % item[0]
+            c += 1
+            for val in list(subitem[1].values()):
+                newtablehtml += "<td>%s</td>" % (val)
+                c += 1
+                print(val)
+            for val in list(subitem[0].values()):
+                newtablehtml += "<td>%s</td>" % (val)
+                c += 1
+                print(val)
+            newtablehtml += "</tr>"
+
+    newtablehtml += "</tbody></table>"
+    print(c)
+
+
+
     print("time passed:",time.time()-start)
-    return render_template("annotated.html", table=tablehtml, mainKeys = mainKeys, subkeys = json.dumps(subKeys), allKeys = json.dumps(allKeys), allData = json.dumps(newtable))
+    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(subKeys), allKeys = json.dumps(allKeys), allData = nnewtable)
 
 
 if __name__ == "__main__":

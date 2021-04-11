@@ -3,7 +3,7 @@
 <script defer>
 
     var expanded = false;
-    var allData = JSON.parse('{{allData|safe}}');
+    var allData = {{allData|tojson}};
     function showCheckboxes(select) {
         var checkboxes = select.nextElementSibling;
         if (!expanded) {
