@@ -68,34 +68,6 @@ def getGeneInfo(gene_id, table):
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
                                                                  key["mondo"], key["online_report"], key["sop"]))
     table["clingen"].append(clinical_data)
-    """
-    geneData = requests.get("https://www.ncbi.nlm.nih.gov/snp/%s" % str(gene_id)).text
-    soup = bs4.BeautifulSoup(geneData, 'html.parser')
-    aS = soup.findAll('a', href=True)
-    mainurl = "https://www.ncbi.nlm.nih.gov"
-    endpoint = ""
-    for a in aS:
-        if "gene" in a["href"]:
-            endpoint = a["href"]
-            break
-    summary = requests.get(mainurl + endpoint).text
-    summarysoup = bs4.BeautifulSoup(summary, 'html.parser')
-    summarysoup = summarysoup.find(id="summaryDiv")
-    if not summarysoup:
-        return
-    dts = summarysoup.findAll('dt')
-    dds = summarysoup.findAll('dd')
-    for dt, dd in zip(dts, dds):
-        if dt.get_text() not in table:
-            table[dt.get_text()] = []
-            table[dt.get_text()].append(dd.get_text())
-        else:
-            table[dt.get_text()].append(dd.get_text())
-    local_headers = [dt.get_text() for dt in dts]
-    for th in table:
-        if th not in local_headers:
-            table[th].append("")
-    """
 
 
 @app.route("/static/images/logom.png")
@@ -366,7 +338,23 @@ def processVCFRecord(record, table, index, nnewtable):
     main_sub_dict = {
         index:{
             "Civic":[],
-            "Cosmic":[]
+            "Cosmic":[],
+            "Summary":[],
+            "Expression":[],
+            "Cadd":[],
+            "Clingen":[],
+            "dbnsfp":[],
+            "dbsnp":[],
+            "clinvar":[],
+            "evs":[],
+            "mutdb":[],
+            "gwassnps":[],
+            "docm":[],
+            "snpedia":[],
+            "emv":[],
+            "wellderly":[],
+            "exac":[],
+            "grasp":[]
         }
     }
     
@@ -619,18 +607,18 @@ def annotate():
                 </label>
                 ''' 
     subKeys = {
-        "Cosmic":["CMC","Resistance Mutations"],
-        "Civic":["Variants","Variant Groups","Genes","Assertions", "Clinical Evidences"]
+        "Cosmic":["CMC-6","Resistance Mutations-7"],
+        "Civic":["Variants-1","Variant Groups-2","Genes-3","Assertions-4", "Clinical Evidences-5"]
     }
 
     allKeys = {
-        "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
-        "Civic-Variant Groups": [dictKeys.civicDesc(k) for k in dictKeys.civicVariantGroups],
-        "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
-        "Civic-Assertions":[dictKeys.civicDesc(k) for k in dictKeys.civicAssertions],
-        "Civic-Clinical Evidences":[dictKeys.civicDesc(k) for k in dictKeys.civicClinicalEvidences],
-        "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
-        "Cosmic-Resistance Mutations": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicResistanceMutations],
+        "Civic-Variants-1": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
+        "Civic-Variant Groups-2": [dictKeys.civicDesc(k) for k in dictKeys.civicVariantGroups],
+        "Civic-Genes-3":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
+        "Civic-Assertions-4":[dictKeys.civicDesc(k) for k in dictKeys.civicAssertions],
+        "Civic-Clinical Evidences-5":[dictKeys.civicDesc(k) for k in dictKeys.civicClinicalEvidences],
+        "Cosmic-CMC-6": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
+        "Cosmic-Resistance Mutations-7": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicResistanceMutations],
     }
 
 

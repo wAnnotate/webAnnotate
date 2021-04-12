@@ -4,6 +4,7 @@
 
     var expanded = false;
     var allData = {{allData|tojson}};
+    var maintable = null;
     function showCheckboxes(select) {
         var checkboxes = select.nextElementSibling;
         if (!expanded) {
@@ -31,20 +32,24 @@
             checkboxes.insertAdjacentHTML("beforeend",`
                 <label for="${selectedText + "-" + subkeys[selectedText][i]}">
                     <input type="checkbox" id="${selectedText + "-" + subkeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" />
-                    ${subkeys[selectedText][i]}
+                    ${subkeys[selectedText][i].split("-")[0]}
                 </label>
             `)
-            if(selectedKeys.includes(selectedText)) checkboxes.lastElementChild.firstElementChild.checked = true;
+            checkboxes.lastElementChild.firstElementChild.checked = true;
         }
     }
 
     function changeSelectText(label){
         label.parentElement.previousElementSibling.firstElementChild.firstElementChild.innerText = label.innerText;
-        if(label.firstElementChild.checked && !selectedKeys.includes(label.innerText))
+        if(label.firstElementChild.checked && !selectedKeys.includes(label.innerText)){
             selectedKeys.push(label.innerText);
-        else
+            maintable.api().columns([parseInt(label.getAttribute("for").split("-")[2])]).visible(true);
+        }
+        else{
             selectedKeys = selectedKeys
                             .filter(key =>label.innerText != key);
+            maintable.api().columns([parseInt(label.getAttribute("for").split("-")[2])]).visible(false);
+        }
         //label.parentElement.style.display = "none";
         //expanded = false;
     }
@@ -74,7 +79,6 @@
                           "class":"none"
                       },
                       {
-                          "orderable": false,
                           "aaSorting": false,
                           "targets": "_all",
                       },
@@ -97,7 +101,7 @@
     }
 
     function toNormalDataTable() {
-        $("#table").dataTable({
+        maintable = $("#table").dataTable({
              
         dom: 'lBfrtip',
              "orderable": false,
@@ -106,27 +110,27 @@
             {
                 extend: 'csv',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7]
                 }
             },
             
             {
                 extend: 'excel',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7]
                 }
             },
             
             {
                 extend: 'print',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7,8,9,10,11,12,13 ]
+                    columns: [ 1, 2, 3, 4,5,6,7]
                 }
             }
             ],
              "columnDefs": [
                  {
-                     "targets": [11,12],
+                     "targets": [],
                      "class":"none"
                  },
                  {
@@ -157,7 +161,8 @@
                     .filter(b => b.getAttribute("name") != "+")
                     .forEach(b => b.className += " btn btn-outline-primary");
                  let count = 0;
-                 let cols = [4,5,6,9]; 
+                 let cols = [4,5,6];
+                 /* 
                  this.api().columns(cols).every(function () {
                      var column = this;
                      var select = $(`<select id="select${count}"><option value=""></option></select>`)
@@ -170,6 +175,7 @@
                             select.append('<option value="' + d + '">' + d + '</option>');
                      });
                  });
+                 */
              }
          })
 
