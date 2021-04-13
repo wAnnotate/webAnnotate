@@ -84,10 +84,12 @@ class CivicDb:  # GRCh37 (Ensembl v75)
     def findVariantsFromLocation(self, chromosome, location):  # Returns array of variant dicts
         variants = []
         for v in self.variants.items():
-            if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
-                variants.append(v[1])
-            elif v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
-                variants.append(v[1])
+            if "chromosome" in v[1] and "start" in v[1] and "stop" in v[1]:
+                if v[1]["chromosome"] == str(chromosome) and int(v[1]["start"]) <= location <= int(v[1]["stop"]):
+                    variants.append(v[1])
+            elif "chromosome2" in v[1] and "start2" in v[1] and "stop2" in v[1]:
+                if v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
+                    variants.append(v[1])
         return variants
 
     def findGene(self, arg):  # Gets either gene name or entrez id, returns gene dict
