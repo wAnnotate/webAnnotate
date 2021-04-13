@@ -18,6 +18,7 @@ import traceback
 import time
 import mapping  # mapping.remap()
 import universalKeys as dictKeys  # selected dict keys and their descriptions
+import cadd
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
@@ -48,15 +49,17 @@ def index():
 
 def getGeneInfo(gene_id, table):
     geneData = gene_client.getgene(gene_id)
-    if "summary" not in geneData:
-        table["summary"].append("No data avaliable")
+    if "Summary" not in geneData:
+        table["Summary"].append("No data avaliable")
     else:
-        table["summary"].append(geneData["summary"])
+        table["Summary"].append(geneData["Summary"])
+    """
     if "entrezgene" not in geneData:
         table["entrezgene"].append("No data avaliable")
     else:
         table["entrezgene"].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                    % (geneData["entrezgene"], geneData["entrezgene"]))
+    
     clinical_data = "no data"
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
@@ -68,7 +71,7 @@ def getGeneInfo(gene_id, table):
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
                                                                  key["mondo"], key["online_report"], key["sop"]))
     table["clingen"].append(clinical_data)
-
+    """
 
 @app.route("/static/images/logom.png")
 def logo():
@@ -385,7 +388,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene, variant = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
             foundGene = True
-            getGeneInfo(gene.gene_id, subdict)
+            getGeneInfo(gene.gene_id, main_sub_dict[index])
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -396,7 +399,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene = getGeneFromLocation(record.CHROM, record.POS)
             gene_dict = gene[0].__dict__
             foundGene = True
-            getGeneInfo(gene[0].gene_id, subdict)
+            getGeneInfo(gene[0].gene_id, main_sub_dict[index])
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
@@ -411,6 +414,19 @@ def processVCFRecord(record, table, index, nnewtable):
             if record.ALT:
                 for i in record.ALT:
                     hgsvs.append(str(variant_client.format_hgvs(mappedChr, mappedPos, record.REF, str(i))))
+                    print(i)
+                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
+                        cadd_data = cadd.getSNV("GRCh37",mappedChr,mappedPos,record.REF,str(i))
+                        if cadd_data and type(cadd_data) == list:
+                            for d in cadd_data:
+                                cadd_dict = {}
+                                for key in cadd.keys:
+                                    if key in d:
+                                        cadd_dict[key.replace("-"," ").replace("_"," ")] = d[key]
+                                    else:
+                                        cadd_dict[key] = "No data available"
+                                main_sub_dict[index]["Cadd"].append(cadd_dict)
+                        print(cadd_data)
             print("hgsvs ", index)
             print(hgsvs)
             print(record.REF, ": ", record.ALT)
@@ -457,30 +473,16 @@ def processVCFRecord(record, table, index, nnewtable):
                     genehtml = json2html.convert(json = civicdatagene, escape=False)
                     keys = list(var.keys())
                     for key in keys:
-                        if key in ["variant_id","variant"]:
+                        if key in ["variant"]:
                             continue
-                        if not var[key] or key not in dictKeys.civicVariants:
+                        if key not in dictKeys.civicVariants:
                             del var[key]
                             continue
                         
                         data = var[key]
                         var[dictKeys.civicDesc(key)] = data
                         del var[key]
-                    print(var)
-                    variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "civic", var["variant_id"])
                     html = json2html.convert(json=var)
-                    print(variant_groups)
-                    print(assertions)
-                    print(clinical_significances)
-                    subdict["listofvariantscivic"].append(json.dumps(
-                        {
-                            "header": "Civic: " + var["variant"], 
-                            "general": html,
-                            "gene":genehtml,
-                            "groups": variant_groups,
-                            "assertions": assertions,
-                            "clinical": clinical_significances
-                        }))
                     CivicDict = {
                         "Variants":html if html else "No data available",
                         "Variant Groups":variant_groups if variant_groups else "No data available",
@@ -504,24 +506,20 @@ def processVCFRecord(record, table, index, nnewtable):
                             resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
                     keys = list(row.keys())
                     for key in keys:
-                        if (key not in dictKeys.cosmicCGC or not row[key]) and key != "id":
+                        if (key not in dictKeys.cosmicCGC):
                             del row[key]
-                        elif key != "id":
+                        elif not row[key]:
+                            row[key] = "No data available"
+                        else:
                             row[dictKeys.cosmicDesc(key)] = row[key]
                             del row[key]
                         
                     variantData = json2html.convert(json = row, escape=False)
-                    subdict["listofvariantscosmic"].append(json.dumps({
-                        "header": "Cosmic: " + str(row["id"]),
-                        "variant": variantData,
-                        "resistanceMutations": resistanceMutationsHtml
-                    }))
                     CosmicDict = {
                         "CMC":variantData if variantData else "No data available",
                         "Resistance Mutations":resistanceMutationsHtml if resistanceMutationsHtml else "No data available"
                     }
                     main_sub_dict[index]["Cosmic"].append(CosmicDict)
-                    variantdata += '<option value="%s-%s-%s">%s</option>' % (index, count, "cosmic", row["id"])
                     count += 1
         except Exception as exp:
             print(index, "- variant exp: ", exp)
@@ -529,18 +527,26 @@ def processVCFRecord(record, table, index, nnewtable):
         if variantdata:
             varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
         print("-------")
-        keys = ["Cosmic","Civic"] if len(main_sub_dict[index]["Cosmic"]) > len(main_sub_dict[index]["Civic"]) else ["Civic","Cosmic"]
-        for i in range(len(main_sub_dict[index][keys[0]])):
-            if i > len(main_sub_dict[index][keys[1]])-1:
-                if keys[1] == "Cosmic":
-                    main_sub_dict[index]["Cosmic"].append(
+        greatest_len = 0
+        for key in ["Cosmic","Civic","Cadd"]:
+            if len(main_sub_dict[index][key]) > greatest_len:
+                greatest_len = len(main_sub_dict[index][key])
+        for key in ["Cosmic","Civic","Cadd"]:
+            while greatest_len > len(main_sub_dict[index][key]):
+                if key == "Cosmic":
+                    main_sub_dict[index][key].append(
                         {
                             "CMC":"No data available",
                             "Resistance Mutations":"No data availabe"
                         }
                     )
+                elif key == "Cadd":
+                    temp = {}
+                    for key in cadd.keys:
+                        temp[key] = "No data avilable"
+                    main_sub_dict[index][key].append(temp)
                 else:
-                    main_sub_dict[index]["Civic"].append(
+                    main_sub_dict[index][key].append(
                         {
                             "Variants":"No data available",
                             "Variant Groups":"No data available",
@@ -549,7 +555,7 @@ def processVCFRecord(record, table, index, nnewtable):
                             "Clinical Evidences":"No data available",
                         }
                     )
-        print("subdict: ", main_sub_dict)
+                
 
         subdict["variantdata"].append(varianthtml)
         # print(gene)
@@ -576,7 +582,8 @@ def processVCFRecord(record, table, index, nnewtable):
     if len(main_sub_dict[index]["Cosmic"]) > 0:
         nnewtable[str(index)] = {
             "Cosmic":main_sub_dict[index]["Cosmic"],
-            "Civic":main_sub_dict[index]["Civic"]
+            "Civic":main_sub_dict[index]["Civic"],
+            "Cadd":main_sub_dict[index]["Cadd"]
         }
 
 @app.route("/annotate", methods=["POST"])
@@ -594,21 +601,22 @@ def annotate():
     vcf_reader = vcf.Reader(file)
     mainKeys = '''
                 <label for="Cosmic">
-                    <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                    <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                    Cosmic
                 </label>
                 <label for="Civic">
-                    <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                    <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                    Civic
                 </label>
                 <label for="Cadd">
-                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement)" />
+                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                    Cadd
                 </label>
                 ''' 
     subKeys = {
         "Cosmic":["CMC-6","Resistance Mutations-7"],
-        "Civic":["Variants-1","Variant Groups-2","Genes-3","Assertions-4", "Clinical Evidences-5"]
+        "Civic":["Variants-1","Variant Groups-2","Genes-3","Assertions-4", "Clinical Evidences-5"],
+        "Cadd": ["ConsScore-8","mirSVR Score-9","dbscSNV ada score-10","dbscSNV rf score-11","RawScore-12","PHRED-13"]
     }
 
     allKeys = {
@@ -619,6 +627,12 @@ def annotate():
         "Civic-Clinical Evidences-5":[dictKeys.civicDesc(k) for k in dictKeys.civicClinicalEvidences],
         "Cosmic-CMC-6": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
         "Cosmic-Resistance Mutations-7": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicResistanceMutations],
+        "Cadd-ConsScore-8":[],
+        "Cadd-mirSVR Score-9":[],
+        "Cadd-dbscSNV ada score-10":[],
+        "Cadd-dbscSNV rf score-11":[],
+        "Cadd-RawScore-12":[],
+        "Cadd-PHRED-13":[]
     }
 
 
@@ -663,54 +677,31 @@ def annotate():
             nnewtable[key][key2] = []
             for element in newtable[key][key2]:
                 nnewtable[key][key2].append(element)
-
-    for c in range(count):
-        table["rowid"].append(c)
-        for item2 in ttable[c].items():
-            if item2[0] != "variants" and item2[0] != "listofvariants" and item2[0] != "listofvariantscivic" and item2[0] != "listofvariantscosmic":
-                # print(len(item2[1]))
-                table[item2[0]].append(item2[1][0])
-            else:
-                table[item2[0]].append(item2[1])
     session["table"] = table.copy()
-    # print(table)
-    tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
-    for th in table:
-        if th != "variants" and th != "listofvariants" and th != "listofvariantscivic" and th != "listofvariantscosmic":
-            tablehtml += "<th>%s</th>" % th
-    tablehtml += "</tr></thead><tbody>"
-    count = len(list(table.values())[0])
-    for c in range(count):
-        tablehtml += "<tr>"
-        for th in table:
-            if th != "variants" and th != "listofvariants" and th != "listofvariantscivic" and th != "listofvariantscosmic":
-                tablehtml += "<td>%s</td>" % table[th][c]
-        tablehtml += "</tr>"
-    tablehtml += "</tbody></table>"
     newtablehtml = ""
     newtablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
     newtablehtml += "<th>Row Index</th>"
     for key in allKeys:
-        newtablehtml += "<th>%s</th>" % key
+        newtablehtml += "<th>%s</th>" % key[:-2]
     newtablehtml += "</tr>"
     newtablehtml += "</tr></thead><tbody>"
     c = 0
     for item in list(nnewtable.items()):
-        for subitem in zip(item[1]["Cosmic"],item[1]["Civic"]):
+        for subitem in zip(item[1]["Cosmic"],item[1]["Civic"],item[1]["Cadd"]):
             newtablehtml += "<tr><td>%s</td>" % item[0]
             c += 1
             for val in list(subitem[1].values()):
                 newtablehtml += "<td>%s</td>" % (val)
                 c += 1
-                print(val)
             for val in list(subitem[0].values()):
                 newtablehtml += "<td>%s</td>" % (val)
                 c += 1
-                print(val)
+            for val in list(subitem[2].values()):
+                newtablehtml += "<td>%s</td>" % (val)
+                c += 1
             newtablehtml += "</tr>"
 
     newtablehtml += "</tbody></table>"
-    print(c)
 
 
 

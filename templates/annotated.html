@@ -1,7 +1,7 @@
 {% extends "main.html" %}
 {% block content %}
 <script defer>
-
+    var init = [];
     var expanded = false;
     var allData = {{allData|tojson}};
     var maintable = null;
@@ -23,11 +23,17 @@
         else
             selectedKeys.remove(checkbox.id);
     }
-    function resetSubkeys(mainKeys){
+    function resetSubkeys(mainKeys, checkbox){
         var subkeys = JSON.parse('{{subkeys|safe}}');
         let checkboxes = document.getElementById("checkboxes");
         checkboxes.innerHTML = "";
         let selectedText = mainKeys.getAttribute("for");
+        [...mainKeys.parentElement.children]
+            .forEach(child => {
+                if(child.firstElementChild != checkbox){
+                    child.firstElementChild.checked = false;
+                }
+            })
         for(let i = 0;i<subkeys[selectedText].length;i++){
             checkboxes.insertAdjacentHTML("beforeend",`
                 <label for="${selectedText + "-" + subkeys[selectedText][i]}">
@@ -35,8 +41,10 @@
                     ${subkeys[selectedText][i].split("-")[0]}
                 </label>
             `)
-            checkboxes.lastElementChild.firstElementChild.checked = true;
+            if(selectedKeys.includes(checkboxes.lastElementChild.innerText) || !init.includes(selectedText))
+                checkboxes.lastElementChild.firstElementChild.checked = true;
         }
+        init.push(selectedText);
     }
 
     function changeSelectText(label){

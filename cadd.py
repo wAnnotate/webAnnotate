@@ -2,6 +2,7 @@ import requests
 
 server = "https://cadd.gs.washington.edu/api/v1.0/"
 
+keys = ["ConsScore","mirSVR-Score","dbscSNV-ada_score","dbscSNV-rf_score","RawScore","PHRED"]
 
 def getSNV(version, chrom, pos, ref=None, alt=None):  # GRCh37, X, 10000, A, T
     chrom = str(chrom)
