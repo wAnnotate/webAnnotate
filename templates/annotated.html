@@ -23,7 +23,7 @@
         else
             selectedKeys.remove(checkbox.id);
     }
-    function resetSubkeys(mainKeys, checkbox){
+    function resetSubkeys(mainKeys, checkbox){ 
         var subkeys = JSON.parse('{{subkeys|safe}}');
         let checkboxes = document.getElementById("checkboxes");
         checkboxes.innerHTML = "";
