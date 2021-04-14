@@ -754,10 +754,17 @@ def annotate():
             newtablehtmlheader += "<th>%s</th>" % key
     """
 
+    keys = {
+        "Civic":{},
+        "Cosmic":{},
+        "Cadd":{}
+    }
     newtablehtmlbody = "<tbody>"
     c = 0
+    keyc = 1
     rowc = 0
     addedkeys = []
+    popupdata = {}
     for item1 in list(nnewtable.items()):
         for subitem in zip(item1[1]["Cosmic"],item1[1]["Civic"],item1[1]["Cadd"]):
             newtablehtmlbody += "<tr><td>%s</td>" % item1[0]
@@ -767,22 +774,34 @@ def annotate():
                     innerhtml = "<option value="" selected>""</option>"
                     for element in val:
                         innerhtml += """
-                                        <option id=""%s-%s-%s"" value="%s">%s</option>
-                                     """ % (item[0],rowc,c, list(element.values())[0],list(element.values())[0] )
-                    innerhtmlselect = """<select onchange="toggleModal()">%s</select>
+                                        <option value="%s-%s-%s-%s">%s</option>
+                                     """ % (item[0],rowc,c,list(element.values())[0],list(element.values())[0] )
+                        popupdata["%s-%s-%s-%s" % (item[0],rowc,c,list(element.values())[0])] = json2html.convert(json = element)
+                    innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
                                     """ % (innerhtml)
                     newtablehtmlbody += "<td>%s</td>" % (innerhtmlselect)
                     newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    addedkeys.append(item[0])
+                    if item[0] not in addedkeys:
+                        addedkeys.append(item[0])
+                        keys["Civic"][item[0]] = keyc
+                        keyc += 1
                 elif type(val) == dict:
                     for key in val:
                         newtablehtmlbody += "<td>%s</td>" % (val[key])
                         newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                        addedkeys.append(key)
+                        if key not in addedkeys:
+                            addedkeys.append(key)
+                            if item[0] not in keys["Civic"]:
+                                keys["Civic"][item[0]] = {}
+                            keys["Civic"][item[0]][key] = keyc
+                            keyc += 1
                 else:
                     newtablehtmlbody += "<td>%s</td>" % (val)
                     newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    addedkeys.append(item[0])
+                    if item[0] not in addedkeys:
+                        addedkeys.append(item[0])
+                        keys["Civic"][item[0]] = keyc
+                        keyc += 1
 
                 c += 1
             for item in list(subitem[0].items()):
@@ -791,29 +810,41 @@ def annotate():
                     for key in val:
                         newtablehtmlbody += "<td>%s</td>" % (val[key])
                         newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                        addedkeys.append(key)
+                        if key not in addedkeys:
+                            addedkeys.append(key)
+                            if item[0] not in keys["Cosmic"]:
+                                keys["Cosmic"][item[0]] = {}
+                            keys["Cosmic"][item[0]][key] = keyc
+                            keyc += 1
                 else:
                     newtablehtmlbody += "<td>%s</td>" % (val)
                     newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    addedkeys.append(item[0])
+                    if item[0] not in addedkeys:
+                        addedkeys.append(item[0])
+                        keys["Cosmic"][item[0]] = keyc
+                        keyc += 1
 
                 c += 1
             for item in list(subitem[2].items()):
                 val = item[1]
                 newtablehtmlbody += "<td>%s</td>" % (val)
                 newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                addedkeys.append(item[0])
+                if item[0] not in addedkeys:
+                    addedkeys.append(item[0])
+                    keys["Cadd"][item[0]] = keyc
+                    keyc += 1
                 c += 1
             newtablehtmlbody += "</tr>"
         rowc += 1
-    print(list(dict.fromkeys(addedkeys)))
+
+    c = 1
     newtablehtmlheader += "</tr></thead>"
     newtablehtmlbody += "</tbody>"
     newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
 
 
     print("time passed:",time.time()-start)
-    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(subKeys), allKeys = json.dumps(allKeys), allData = nnewtable)
+    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allKeys = json.dumps(allKeys), allData = nnewtable,popupdata = popupdata)
 
 
 if __name__ == "__main__":

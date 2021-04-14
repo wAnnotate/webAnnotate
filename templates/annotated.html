@@ -4,6 +4,9 @@
     var init = [];
     var expanded = false;
     var allData = {{allData|tojson}};
+
+    var popupdata = {{popupdata|tojson}};
+
     var maintable = null;
     function showCheckboxes(select) {
         var checkboxes = select.nextElementSibling;
@@ -24,6 +27,8 @@
             selectedKeys.remove(checkbox.id);
     }
     function resetSubkeys(mainKeys, checkbox){
+        if(!checkbox.checked)
+            return;
         document.getElementById("checkboxes1").innerHTML = ""; 
         var subkeys = JSON.parse('{{subkeys|safe}}');
         let checkboxes = document.getElementById("checkboxes");
@@ -35,19 +40,56 @@
                     child.firstElementChild.checked = false;
                 }
             })
-        for(let i = 0;i<subkeys[selectedText].length;i++){
-            checkboxes.insertAdjacentHTML("beforeend",`
-                <label for="${selectedText + "-" + subkeys[selectedText][i]}">
-                    <input type="checkbox" id="${selectedText + "-" + subkeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" onchange = "resetSubSubKeys(this.parentElement, this)" />
-                    ${subkeys[selectedText][i].split("-")[0]}
-                </label>
-            `)
+        Object.keys(subkeys[selectedText])
+            .forEach(subkey => {
+                let index = "";
+                let onchange = "resetSubSubKeys(this.parentElement, this)";
+                if(typeof subkeys[selectedText][subkey] == "number"){
+                    index = subkeys[selectedText][subkey];
+                    onchange = "";
+                }
+
+                checkboxes.insertAdjacentHTML("beforeend",`
+                    <label for="${selectedText + "-" + subkey + "-" + String(index)}">
+                        <input type="checkbox" id="${selectedText + "-" + subkey + "-" + String(index)}" onclick="changeSelectText(this.parentElement)" onchange = "${onchange}" />
+                        ${subkey}
+                    </label>
+                `);
+                if(selectedKeys.includes(selectedText + "-" + subkey + "-" + String(index)) || !init.includes(selectedText)){ 
+                    checkboxes.lastElementChild.firstElementChild.checked = true;
+                    if(!selectedKeys.includes(selectedText + "-" + subkey + "-" + String(index))){
+                        selectedKeys.push(selectedText + "-" + subkey + "-" + String(index));
+                    }
+                }
+            })
+        /*
+        Object.keys(subkeys)
+            .forEach(mainkey => {
+                Object.keys(subkeys[mainkey])
+                    .forEach(subkey => {
+                        if(typeof subkeys[mainkey][subkey] == 'number' && mainkey == selectedText){
+                            maintable.api().columns([subkeys[mainkey][subkey]]).visible(true);
+                        }
+                        else{
+                            Object.keys(subkeys[mainkey][subkey])
+                                .forEach(subsubkey => {
+
+                                })
+                        }
+                    })
+            })
+        */
+        if(!init.includes(selectedText)){
+            init.push(selectedText);
         }
-        init.push(selectedText);
+        console.log(subkeys);
     }
 
     function resetSubSubKeys(subKeys, checkbox){
+        if(!checkbox.checked)
+            return;
         let checkboxes = document.getElementById("checkboxes1");
+        var subkeys = JSON.parse('{{subkeys|safe}}');
         checkboxes.innerHTML = "";
         let selectedText = subKeys.getAttribute("for");
         [...subKeys.parentElement.children]
@@ -56,31 +98,33 @@
                     child.firstElementChild.checked = false;
                 }
             })
-        for(let i = 0;i<allKeys[selectedText].length;i++){
-            checkboxes.insertAdjacentHTML("beforeend",`
-                <label for="${selectedText + "-" + allKeys[selectedText][i]}">
-                    <input type="checkbox" id="${selectedText + "-" + allKeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" />
-                    ${allKeys[selectedText][i]}
-                </label>
-            `)
-            if(selectedKeys.includes(checkboxes.lastElementChild.innerText) || !init.includes(selectedText))
-                checkboxes.lastElementChild.firstElementChild.checked = true;
+        let mainKey = selectedText.split("-")[0];
+        let subkey = selectedText.split("-")[1];
+        Object.keys(subkeys[mainKey][subkey])
+            .forEach(subsubkey => {
+                checkboxes.insertAdjacentHTML("beforeend",`
+                    <label for="${selectedText + "-" + subsubkey + "-" + subkeys[mainKey][subkey][subsubkey]}">
+                        <input type="checkbox" id="${selectedText + "-" + subsubkey + "-" + subkeys[mainKey][subkey][subsubkey]}" onclick="changeSelectText(this.parentElement)" />
+                        ${subsubkey}
+                    </label>
+                `)
+                if(selectedKeys.includes(selectedText + "-" + subsubkey + "-" + subkeys[mainKey][subkey][subsubkey]) || !init.includes(selectedText)) checkboxes.lastElementChild.firstElementChild.checked = true;
+            })
+        if(!init.includes(selectedText)){
+            init.push(selectedText);
         }
-        
-
-
     }
 
     function changeSelectText(label){
         label.parentElement.previousElementSibling.firstElementChild.firstElementChild.innerText = label.innerText;
         if(label.firstElementChild.checked && !selectedKeys.includes(label.innerText)){
-            selectedKeys.push(label.innerText);
-            maintable.api().columns([parseInt(label.getAttribute("for").split("-")[2])]).visible(true);
+            selectedKeys.push(label.getAttribute("for"));
+            maintable.api().columns([parseInt(label.getAttribute("for").split("-").pop())]).visible(true);
         }
         else{
             selectedKeys = selectedKeys
-                            .filter(key =>label.innerText != key);
-            maintable.api().columns([parseInt(label.getAttribute("for").split("-")[2])]).visible(false);
+                            .filter(key =>label.getAttribute("for") != key);
+            maintable.api().columns([parseInt(label.getAttribute("for").split("-").pop())]).visible(false);
         }
         //label.parentElement.style.display = "none";
         //expanded = false;
@@ -249,6 +293,12 @@
             }
         }
     })
+    function toggleModal(select){
+        let header = select.value.split("-").pop();
+        document.getElementById("modalHeader").innerText = header;
+        document.getElementById("modalBody").innerHTML = popupdata[select.value];
+        document.getElementById("myModal").style.display = "block";
+    }
 
 </script>
 <form>

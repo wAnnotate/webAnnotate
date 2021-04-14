@@ -105,6 +105,8 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
         chr = str(chr)
         pos = int(pos)
         for g in self.cgc.items():
+            if "Genome Location" not in g[1]:
+                continue
             chrSplit = g[1]["Genome Location"].split(':')
             if chrSplit[0] == "":  # Unknown location
                 continue
@@ -120,6 +122,8 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
 
     def findGene(self, entrezId):  # Gets entrez id, returns dict or None (if you cannot find with location, try this)
         for g in self.cgc.items():
+            if "Entrez GeneId" not in g[1]:
+                continue
             if g[1]["Entrez GeneId"] == str(entrezId):
                 return g[1]
         return None
@@ -132,7 +136,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
     def findResistanceMutations(self, legacyMutationId):  # Gets LEGACY_MUTATION_ID from db, returns array of dict
         resistanceMutations = []
         for resMut in self.resistanceMutations.items():
-            if "LEGACY_MUTATION_ID" in resMut and resMut[1]["LEGACY_MUTATION_ID"] == str(legacyMutationId):
+            if "LEGACY_MUTATION_ID" in resMut[1] and resMut[1]["LEGACY_MUTATION_ID"] == str(legacyMutationId):
                 resistanceMutations.append(resMut[1])
         return resistanceMutations
 
