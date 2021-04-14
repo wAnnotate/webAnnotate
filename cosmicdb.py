@@ -132,7 +132,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
     def findResistanceMutations(self, legacyMutationId):  # Gets LEGACY_MUTATION_ID from db, returns array of dict
         resistanceMutations = []
         for resMut in self.resistanceMutations.items():
-            if resMut[1]["LEGACY_MUTATION_ID"] == str(legacyMutationId):
+            if "LEGACY_MUTATION_ID" in resMut and resMut[1]["LEGACY_MUTATION_ID"] == str(legacyMutationId):
                 resistanceMutations.append(resMut[1])
         return resistanceMutations
 

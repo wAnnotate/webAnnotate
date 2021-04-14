@@ -23,7 +23,8 @@
         else
             selectedKeys.remove(checkbox.id);
     }
-    function resetSubkeys(mainKeys, checkbox){ 
+    function resetSubkeys(mainKeys, checkbox){
+        document.getElementById("checkboxes1").innerHTML = ""; 
         var subkeys = JSON.parse('{{subkeys|safe}}');
         let checkboxes = document.getElementById("checkboxes");
         checkboxes.innerHTML = "";
@@ -37,14 +38,37 @@
         for(let i = 0;i<subkeys[selectedText].length;i++){
             checkboxes.insertAdjacentHTML("beforeend",`
                 <label for="${selectedText + "-" + subkeys[selectedText][i]}">
-                    <input type="checkbox" id="${selectedText + "-" + subkeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" />
+                    <input type="checkbox" id="${selectedText + "-" + subkeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" onchange = "resetSubSubKeys(this.parentElement, this)" />
                     ${subkeys[selectedText][i].split("-")[0]}
+                </label>
+            `)
+        }
+        init.push(selectedText);
+    }
+
+    function resetSubSubKeys(subKeys, checkbox){
+        let checkboxes = document.getElementById("checkboxes1");
+        checkboxes.innerHTML = "";
+        let selectedText = subKeys.getAttribute("for");
+        [...subKeys.parentElement.children]
+            .forEach(child => {
+                if(child.firstElementChild != checkbox){
+                    child.firstElementChild.checked = false;
+                }
+            })
+        for(let i = 0;i<allKeys[selectedText].length;i++){
+            checkboxes.insertAdjacentHTML("beforeend",`
+                <label for="${selectedText + "-" + allKeys[selectedText][i]}">
+                    <input type="checkbox" id="${selectedText + "-" + allKeys[selectedText][i]}" onclick="changeSelectText(this.parentElement)" />
+                    ${allKeys[selectedText][i]}
                 </label>
             `)
             if(selectedKeys.includes(checkboxes.lastElementChild.innerText) || !init.includes(selectedText))
                 checkboxes.lastElementChild.firstElementChild.checked = true;
         }
-        init.push(selectedText);
+        
+
+
     }
 
     function changeSelectText(label){
@@ -252,6 +276,18 @@
         </div>
       </div>
     </form>
+    <form>
+        <div class="multiselect">
+          <div class="selectBox" onclick="showCheckboxes(this)">
+            <select>
+              <option>Select an option</option>
+            </select>
+            <div class="overSelect"></div>
+          </div>
+          <div id="checkboxes1" class="checkboxes">
+          </div>
+        </div>
+      </form>
 <div id="myModal" class="modal"  style="display: none;">
     <div class="modal-content" id="modal-content">
         <div class="modal-header">

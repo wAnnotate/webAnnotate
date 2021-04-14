@@ -132,21 +132,21 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         groups = groups.split(',')
         for g in groups:
             for vg in self.variantGroups.items():
-                if vg[1]["variant_group"] == g:
+                if "variant_group" in vg[1] and vg[1]["variant_group"] == g:
                     variantGroups.append(vg[1])
         return variantGroups
 
     def findAssertions(self, variantId):  # Gets variant_id, returns assertions
         assertions = []
         for a in self.assertions.items():
-            if a[1]["variant_id"] == str(variantId):
+            if "variant_id" in a[1] and a[1]["variant_id"] == str(variantId):
                 assertions.append(a[1])
         return assertions
 
     def findClinicalEvidences(self, variantId):  # Gets variant_id, returns clinical evidences
         clinicalEvidences = []
         for ce in self.clinicalEvidences.items():
-            if ce[1]["variant_id"] == str(variantId):
+            if "variant_id" in ce[1] and ce[1]["variant_id"] == str(variantId):
                 clinicalEvidences.append(ce[1])
         return clinicalEvidences
 

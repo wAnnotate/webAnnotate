@@ -382,6 +382,13 @@ def processVCFRecord(record, table, index, nnewtable):
         "listofvariantscosmic": []
     }
 
+    civic_variants_template = {}
+    for key in dictKeys.civicVariants:
+        civic_variants_template[dictKeys.cosmicDesc(key)] = "No data available"
+    cosmic_CMC_template = {}
+    for key in dictKeys.cosmicCMC:
+        cosmic_CMC_template[dictKeys.cosmicDesc(key)] = "No data available"
+
     if record.ID:  # RsId exists
         # print("rsid exists")
         try:
@@ -411,10 +418,17 @@ def processVCFRecord(record, table, index, nnewtable):
             varianthtml = "No data available"
             variantdata = ""
             hgsvs = []
+        except:
+            print(traceback.format_exc())
+        try:
             if record.ALT:
                 for i in record.ALT:
                     hgsvs.append(str(variant_client.format_hgvs(mappedChr, mappedPos, record.REF, str(i))))
-                    print(i)
+        except:
+            print(traceback.format_exc())
+        try:
+            if record.ALT:
+                for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
                         cadd_data = cadd.getSNV("GRCh37",mappedChr,mappedPos,record.REF,str(i))
                         if cadd_data and type(cadd_data) == list:
@@ -426,10 +440,10 @@ def processVCFRecord(record, table, index, nnewtable):
                                     else:
                                         cadd_dict[key] = "No data available"
                                 main_sub_dict[index]["Cadd"].append(cadd_dict)
-                        print(cadd_data)
+        except:
+            print(traceback.format_exc())
+        try:
             print("hgsvs ", index)
-            print(hgsvs)
-            print(record.REF, ": ", record.ALT)
             if record.ID:
                 count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, subdict, hgsvs,
                                                     variantdata)
@@ -437,6 +451,9 @@ def processVCFRecord(record, table, index, nnewtable):
                 for hgsv in hgsvs:
                     count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
                                                         variantdata)
+        except:
+            print(traceback.format_exc())
+        try:
             civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos).copy()
             if civicdata:
                 count = 0
@@ -451,26 +468,45 @@ def processVCFRecord(record, table, index, nnewtable):
                         for key in keys:
                             if key not in dictKeys.civicClinicalEvidences:
                                 del cs[key]
+                            else:
+                                data = cs[key]
+                                cs[dictKeys.civicDesc(key)] = data
+                                del cs[key]
                     
                     for cs in assertions:
                         keys = list(cs.keys())
                         for key in keys:
                             if key not in dictKeys.civicAssertions:
                                 del cs[key]
+                            else:
+                                data = cs[key]
+                                cs[dictKeys.civicDesc(key)] = data
+                                del cs[key]
                     for cs in variant_groups:
                         keys = list(cs.keys())
                         for key in keys:
                             if key not in dictKeys.civicVariantGroups:
+                                del cs[key]
+                            else:
+                                data = cs[key]
+                                cs[dictKeys.civicDesc(key)] = data
                                 del cs[key]
                     for cs in civicdatagene:
                         keys = list(cs.keys())
                         for key in keys:
                             if key not in dictKeys.civicGenes:
                                 del cs[key]
+                            else:
+                                data = cs[key]
+                                cs[dictKeys.civicDesc(key)] = data
+                                del cs[key]
+                    """
                     variant_groups = json2html.convert(json = variant_groups, escape = False)
                     assertions = json2html.convert(json = assertions, escape = False)
                     clinical_significances = json2html.convert(json = clinical_significances, escape = False)
                     genehtml = json2html.convert(json = civicdatagene, escape=False)
+                    """
+                    genehtml = civicdatagene
                     keys = list(var.keys())
                     for key in keys:
                         if key in ["variant"]:
@@ -482,9 +518,12 @@ def processVCFRecord(record, table, index, nnewtable):
                         data = var[key]
                         var[dictKeys.civicDesc(key)] = data
                         del var[key]
+                    """
                     html = json2html.convert(json=var)
+                    """
+                    html = var
                     CivicDict = {
-                        "Variants":html if html else "No data available",
+                        "Variants":html if html else civic_variants_template,
                         "Variant Groups":variant_groups if variant_groups else "No data available",
                         "Genes":genehtml if genehtml else "No data avaliable",
                         "Assertions":assertions if assertions else "No data available",
@@ -492,6 +531,9 @@ def processVCFRecord(record, table, index, nnewtable):
                     }
                     main_sub_dict[index]["Civic"].append(CivicDict)
                     count += 1
+        except:
+            print(traceback.format_exc())
+        try:
             cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos)
             if not cosmicdata:
                 mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
@@ -502,8 +544,18 @@ def processVCFRecord(record, table, index, nnewtable):
                     resistanceMutationsHtml = ""
                     if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
                         resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
+                        for res in resistanceMutations:
+                            reskeys = list(res.keys())
+                            for key in reskeys:
+                                if key not in dictKeys.cosmicResistanceMutations:
+                                    del res[key]
+                                else:
+                                    res[dictKeys.cosmicDesc(key)] = res[key]
+                                    del res[key]
+                        """
                         if resistanceMutations:
                             resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
+                        """
                     keys = list(row.keys())
                     for key in keys:
                         if (key not in dictKeys.cosmicCGC):
@@ -515,9 +567,10 @@ def processVCFRecord(record, table, index, nnewtable):
                             del row[key]
                         
                     variantData = json2html.convert(json = row, escape=False)
+                    variantData = row
                     CosmicDict = {
-                        "CMC":variantData if variantData else "No data available",
-                        "Resistance Mutations":resistanceMutationsHtml if resistanceMutationsHtml else "No data available"
+                        "CMC":variantData if variantData else cosmic_CMC_template,
+                        "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
                     }
                     main_sub_dict[index]["Cosmic"].append(CosmicDict)
                     count += 1
@@ -536,7 +589,7 @@ def processVCFRecord(record, table, index, nnewtable):
                 if key == "Cosmic":
                     main_sub_dict[index][key].append(
                         {
-                            "CMC":"No data available",
+                            "CMC":cosmic_CMC_template,
                             "Resistance Mutations":"No data availabe"
                         }
                     )
@@ -548,7 +601,7 @@ def processVCFRecord(record, table, index, nnewtable):
                 else:
                     main_sub_dict[index][key].append(
                         {
-                            "Variants":"No data available",
+                            "Variants": civic_variants_template,
                             "Variant Groups":"No data available",
                             "Genes":"No data available",
                             "Assertions":"No data available",
@@ -620,19 +673,19 @@ def annotate():
     }
 
     allKeys = {
-        "Civic-Variants-1": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
-        "Civic-Variant Groups-2": [dictKeys.civicDesc(k) for k in dictKeys.civicVariantGroups],
-        "Civic-Genes-3":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
-        "Civic-Assertions-4":[dictKeys.civicDesc(k) for k in dictKeys.civicAssertions],
-        "Civic-Clinical Evidences-5":[dictKeys.civicDesc(k) for k in dictKeys.civicClinicalEvidences],
-        "Cosmic-CMC-6": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
-        "Cosmic-Resistance Mutations-7": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicResistanceMutations],
-        "Cadd-ConsScore-8":[],
-        "Cadd-mirSVR Score-9":[],
-        "Cadd-dbscSNV ada score-10":[],
-        "Cadd-dbscSNV rf score-11":[],
-        "Cadd-RawScore-12":[],
-        "Cadd-PHRED-13":[]
+        "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
+        "Civic-Variant Groups": [],
+        "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
+        "Civic-Assertions":[],
+        "Civic-Clinical Evidences":[],
+        "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
+        "Cosmic-Resistance Mutations": [],
+        "Cadd-ConsScore":[],
+        "Cadd-mirSVR Score":[],
+        "Cadd-dbscSNV ada score":[],
+        "Cadd-dbscSNV rf score":[],
+        "Cadd-RawScore":[],
+        "Cadd-PHRED":[]
     }
 
 
@@ -670,39 +723,82 @@ def annotate():
     pool.close()
     pool.join()
     count = len(list(ttable.keys()))
-    print(newtable)
     for key in newtable:
         nnewtable[key] = {}
         for key2 in newtable[key]:
             nnewtable[key][key2] = []
             for element in newtable[key][key2]:
                 nnewtable[key][key2].append(element)
+            print(key," :",key2," :",len(nnewtable[key][key2]))
     session["table"] = table.copy()
     newtablehtml = ""
-    newtablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
-    newtablehtml += "<th>Row Index</th>"
+    newtablehtmlheader = """<thead><tr>"""
+    newtablehtmlheader += "<th>Row Index</th>"
+    """
     for key in allKeys:
-        newtablehtml += "<th>%s</th>" % key[:-2]
-    newtablehtml += "</tr>"
-    newtablehtml += "</tr></thead><tbody>"
+        if len(allKeys[key]):
+            for key2 in allKeys[key]:
+                newtablehtmlheader += "<th>%s</th>" % key2
+        else:
+            newtablehtmlheader += "<th>%s</th>" % key
+    """
+
+    newtablehtmlbody = "<tbody>"
     c = 0
-    for item in list(nnewtable.items()):
-        for subitem in zip(item[1]["Cosmic"],item[1]["Civic"],item[1]["Cadd"]):
-            newtablehtml += "<tr><td>%s</td>" % item[0]
-            c += 1
-            for val in list(subitem[1].values()):
-                newtablehtml += "<td>%s</td>" % (val)
-                c += 1
-            for val in list(subitem[0].values()):
-                newtablehtml += "<td>%s</td>" % (val)
-                c += 1
-            for val in list(subitem[2].values()):
-                newtablehtml += "<td>%s</td>" % (val)
-                c += 1
-            newtablehtml += "</tr>"
+    rowc = 0
+    addedkeys = []
+    for item1 in list(nnewtable.items()):
+        for subitem in zip(item1[1]["Cosmic"],item1[1]["Civic"],item1[1]["Cadd"]):
+            newtablehtmlbody += "<tr><td>%s</td>" % item1[0]
+            for item in list(subitem[1].items()):
+                val = item[1]
+                if type(val) == list and type(val[0]) == dict:
+                    innerhtml = "<option value="" selected>""</option>"
+                    for element in val:
+                        innerhtml += """
+                                        <option id=""%s-%s-%s"" value="%s">%s</option>
+                                     """ % (item[0],rowc,c, list(element.values())[0],list(element.values())[0] )
+                    innerhtmlselect = """<select onchange="toggleModal()">%s</select>
+                                    """ % (innerhtml)
+                    newtablehtmlbody += "<td>%s</td>" % (innerhtmlselect)
+                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                    addedkeys.append(item[0])
+                elif type(val) == dict:
+                    for key in val:
+                        newtablehtmlbody += "<td>%s</td>" % (val[key])
+                        newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                        addedkeys.append(key)
+                else:
+                    newtablehtmlbody += "<td>%s</td>" % (val)
+                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                    addedkeys.append(item[0])
 
-    newtablehtml += "</tbody></table>"
+                c += 1
+            for item in list(subitem[0].items()):
+                val = item[1]
+                if type(val) == dict:
+                    for key in val:
+                        newtablehtmlbody += "<td>%s</td>" % (val[key])
+                        newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                        addedkeys.append(key)
+                else:
+                    newtablehtmlbody += "<td>%s</td>" % (val)
+                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                    addedkeys.append(item[0])
 
+                c += 1
+            for item in list(subitem[2].items()):
+                val = item[1]
+                newtablehtmlbody += "<td>%s</td>" % (val)
+                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                addedkeys.append(item[0])
+                c += 1
+            newtablehtmlbody += "</tr>"
+        rowc += 1
+    print(list(dict.fromkeys(addedkeys)))
+    newtablehtmlheader += "</tr></thead>"
+    newtablehtmlbody += "</tbody>"
+    newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
 
 
     print("time passed:",time.time()-start)
