@@ -521,7 +521,7 @@ def processVCFRecord(record, table, index, nnewtable):
                     temp = {}
                     for key in list(civic_variants_template.keys()):
                         temp[key] = var[key]
-                    var = temp
+                    var = temp.copy()
                     """
                     html = json2html.convert(json=var)
                     """
@@ -588,62 +588,47 @@ def processVCFRecord(record, table, index, nnewtable):
         except Exception as exp:
             print(index, "- variant exp: ", exp)
             print(traceback.format_exc())
-        if variantdata:
-            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
-        print("-------")
-        greatest_len = 0
-        for key in ["Cosmic","Civic","Cadd"]:
-            if len(main_sub_dict[index][key]) > greatest_len:
-                greatest_len = len(main_sub_dict[index][key])
-        for key in ["Cosmic","Civic","Cadd"]:
-            while greatest_len > len(main_sub_dict[index][key]):
-                if key == "Cosmic":
-                    main_sub_dict[index][key].append(
-                        {
-                            "CMC":cosmic_CMC_template,
-                            "Resistance Mutations":"No data availabe"
-                        }
-                    )
-                elif key == "Cadd":
-                    temp = {}
-                    for key in cadd.keys:
-                        temp[key] = "No data avilable"
-                    main_sub_dict[index][key].append(temp)
-                else:
-                    main_sub_dict[index][key].append(
-                        {
-                            "Variants": civic_variants_template,
-                            "Variant Groups":"No data available",
-                            "Genes":"No data available",
-                            "Assertions":"No data available",
-                            "Clinical Evidences":"No data available",
-                        }
-                    )
-                
+        try:
+            if variantdata:
+                varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
+            print("-------")
+            greatest_len = 0
+            for key in ["Cosmic","Civic","Cadd"]:
+                if len(main_sub_dict[index][key]) > greatest_len:
+                    greatest_len = len(main_sub_dict[index][key])
+            if greatest_len:
+                for k in main_sub_dict[index]:
+                    print(k,",",main_sub_dict[index][k])
+            for key in ["Cosmic","Civic","Cadd"]:
+                while greatest_len > len(main_sub_dict[index][key]):
+                    if key == "Cosmic":
+                        main_sub_dict[index][key].append(
+                            {
+                                "CMC":cosmic_CMC_template,
+                                "Resistance Mutations":"No data available"
+                            }
+                        )
+                    elif key == "Cadd":
+                        temp1 = {}
+                        for key2 in cadd.keys:
+                            temp1[key2] = "No data avilable"
+                        main_sub_dict[index][key].append(temp1)
+                        print("key: ", key, ": ",main_sub_dict[index][key])
+                    else:
+                        main_sub_dict[index][key].append(
+                            {
+                                "Variants": civic_variants_template,
+                                "Variant Groups":"No data available",
+                                "Genes":"No data available",
+                                "Assertions":"No data available",
+                                "Clinical Evidences":"No data available",
+                            }
+                        )
+        except:
+            print(traceback.format_exc())
 
-        subdict["variantdata"].append(varianthtml)
-        # print(gene)
-        for key in subdict.keys():
-            if key in gene_dict.keys() and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
-                subdict[key].append(str(gene_dict[key]))
-            elif key not in ["summary", "clingen", "entrezgene", "rowid", "expression", "variants", "variantdata", " ",
-                             "listofvariants", "listofvariantscivic","description","listofvariantscosmic"]:
-                subdict[key].append("No data available")
-        subdict["expression"].append('<a href="/annotate/%s">Expression Graph</a>' % index)
-        subdict[" "].append("""
-                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
-                +
-                </button>
-        """)
-    else:
-        for key in subdict.keys():
-            if key != "rowid" and key != " ":
-                subdict[key].append("No data available")
-        subdict[" "].append("")
     table[index] = subdict
-    if len(main_sub_dict[index]["Cosmic"]) > 0:
+    if greatest_len > 0:
         nnewtable[str(index)] = {
             "Cosmic":main_sub_dict[index]["Cosmic"],
             "Civic":main_sub_dict[index]["Civic"],
