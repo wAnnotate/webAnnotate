@@ -81,7 +81,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
                 Id = row["variant_id"]
                 self.variants[Id] = row
 
-    def findVariantsFromLocation(self, chromosome, location):  # Returns array of variant dicts
+    def findVariantsFromLocation(self, chromosome, location, ref=None, alt=None):  # Returns array of variant dicts
         variants = []
         for v in self.variants.items():
             if "chromosome" in v[1] and "start" in v[1] and "stop" in v[1]:
@@ -90,6 +90,15 @@ class CivicDb:  # GRCh37 (Ensembl v75)
             elif "chromosome2" in v[1] and "start2" in v[1] and "stop2" in v[1]:
                 if v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
                     variants.append(v[1])
+
+        if ref is not None and alt is not None:
+            for v in variants.copy():
+                if "reference_bases" in v and "variant_bases" in v:
+                    if v["reference_bases"] == ref and v["variant_bases"] == alt:
+                        return [v]
+                    if v["reference_bases"] != "" and v["variant_bases"] != "":
+                        variants.remove(v)
+
         return variants
 
     def findGene(self, arg):  # Gets either gene name or entrez id, returns gene dict
@@ -151,12 +160,11 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         return clinicalEvidences
 
 
-"""
 db = CivicDb()
-fcee = db.findClinicalEvidences(64)
-for cee in fcee:
-    for value in cee.items():
+variants = db.findVariantsFromLocation("7", 140453136, "A", "T")
+for v in variants:
+    for value in v.items():
         print(value[0], "->", value[1])
-    break
-print()"""
+    print()
+print()
 # variant, representative_transcript, konum

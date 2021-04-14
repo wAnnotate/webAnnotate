@@ -78,15 +78,14 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
                 self.cgc[Id] = row
 
     @staticmethod
-    def findVariantsFromLocation(assembly, chr, pos):  # "GRCh37", "20", 100000
+    def findVariantsFromLocation(assembly, chr, pos, ref=None, alt=None):  # "GRCh37", "X", 100000, "A", "T"
         query = """"""
         if assembly == "GRCh37":
-            query = """SELECT * FROM mutations WHERE id IN (
-            (SELECT id FROM locations WHERE grch37_chr = ? AND grch37_start <= ? AND grch37_stop >= ?))"""
+            query = """SELECT * FROM mutations WHERE id IN 
+            (SELECT id FROM locations WHERE grch37_chr = ? AND grch37_start <= ? AND grch37_stop >= ?)"""
         elif assembly == "GRCh38":
-            query = """SELECT * FROM mutations WHERE id IN (
-                        (SELECT id FROM locations WHERE grch38_chr = ? AND grch38_start <= ? AND grch38_stop >= ?)
-                        )"""
+            query = """SELECT * FROM mutations WHERE id IN 
+            (SELECT id FROM locations WHERE grch38_chr = ? AND grch38_start <= ? AND grch38_stop >= ?)"""
         else:
             return Exception("Unsupported assembly.")
 
@@ -99,6 +98,14 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
                 for index in range(len(row)):
                     row_dict[keys[index]] = row[index]
                 row_dict_list.append(row_dict)
+
+        if ref is not None and alt is not None:
+            for rd in row_dict_list.copy():
+                if rd["genomic_wt_allele_seq"] == ref and rd["genomic_mut_allele_seq"] == alt:
+                    return [rd]
+                if rd["genomic_wt_allele_seq"] != "" and rd["genomic_mut_allele_seq"] != "":
+                    row_dict_list.remove(rd)
+
         return row_dict_list
 
     def findGeneFromLocation(self, chr, pos):  # GRCh37 position required, returns dict or None
@@ -141,10 +148,9 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
         return resistanceMutations
 
 
-"""
-db = CosmicDb()
+"""db = CosmicDb()
 
-genes = db.findVariantsFromLocation("GRCh37", 7, 140453136)
+genes = db.findVariantsFromLocation("GRCh37", 7, 140453136, "A", "T")
 for gs in genes:
     print("1")
     for g in gs.items():
