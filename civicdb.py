@@ -160,11 +160,11 @@ class CivicDb:  # GRCh37 (Ensembl v75)
         return clinicalEvidences
 
 
-db = CivicDb()
+"""db = CivicDb()
 variants = db.findVariantsFromLocation("7", 140453136, "A", "T")
 for v in variants:
     for value in v.items():
         print(value[0], "->", value[1])
     print()
-print()
+print()"""
 # variant, representative_transcript, konum
