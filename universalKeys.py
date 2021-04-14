@@ -69,6 +69,8 @@ def cosmicDesc(key):
         description += cosmicDescriptions[key]
     elif key in cosmicResistanceMutations:
         description += key
+    if not key:
+        print("empty cosmic key")
     return description
 
 # BioThings keys

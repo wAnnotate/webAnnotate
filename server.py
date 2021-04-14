@@ -384,7 +384,7 @@ def processVCFRecord(record, table, index, nnewtable):
 
     civic_variants_template = {}
     for key in dictKeys.civicVariants:
-        civic_variants_template[dictKeys.cosmicDesc(key)] = "No data available"
+        civic_variants_template[dictKeys.civicDesc(key)] = "No data available"
     cosmic_CMC_template = {}
     for key in dictKeys.cosmicCMC:
         cosmic_CMC_template[dictKeys.cosmicDesc(key)] = "No data available"
@@ -518,6 +518,10 @@ def processVCFRecord(record, table, index, nnewtable):
                         data = var[key]
                         var[dictKeys.civicDesc(key)] = data
                         del var[key]
+                    temp = {}
+                    for key in list(civic_variants_template.keys()):
+                        temp[key] = var[key]
+                    var = temp
                     """
                     html = json2html.convert(json=var)
                     """
@@ -558,13 +562,20 @@ def processVCFRecord(record, table, index, nnewtable):
                         """
                     keys = list(row.keys())
                     for key in keys:
-                        if (key not in dictKeys.cosmicCGC):
+                        if (key not in dictKeys.cosmicCMC):
                             del row[key]
                         elif not row[key]:
                             row[key] = "No data available"
                         else:
                             row[dictKeys.cosmicDesc(key)] = row[key]
                             del row[key]
+                    temp = {}
+                    for key in list(cosmic_CMC_template.keys()):
+                        if key in row:
+                            temp[key] = row[key]
+                        else:
+                            temp[key] = "No data available"
+                    row = temp
                         
                     variantData = json2html.convert(json = row, escape=False)
                     variantData = row
