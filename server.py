@@ -791,7 +791,22 @@ def annotate():
                 c += 1
             for item in list(subitem[0].items()):
                 val = item[1]
-                if type(val) == dict:
+                if type(val) == list and type(val[0]) == dict:
+                    innerhtml = "<option value="" selected>""</option>"
+                    for element in val:
+                        innerhtml += """
+                                        <option value="%s-%s-%s-%s">%s</option>
+                                     """ % (item[0],rowc,c,list(element.values())[0],list(element.values())[0] )
+                        popupdata["%s-%s-%s-%s" % (item[0],rowc,c,list(element.values())[0])] = json2html.convert(json = element)
+                    innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
+                                    """ % (innerhtml)
+                    newtablehtmlbody += "<td>%s</td>" % (innerhtmlselect)
+                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                    if item[0] not in addedkeys:
+                        addedkeys.append(item[0])
+                        keys["Cosmic"][item[0]] = keyc
+                        keyc += 1
+                elif type(val) == dict:
                     for key in val:
                         newtablehtmlbody += "<td>%s</td>" % (val[key])
                         newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
