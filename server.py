@@ -397,7 +397,11 @@ def processVCFRecord(record, table, index, nnewtable):
             gene_dict = gene.__dict__
             foundGene = True
             getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
-            main_sub_dict[index]["General"][0]["Genome"] = str(gene_dict["genome"])
+            for key in gene_dict.keys():
+                if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                                       "variants", "listofvariants",
+                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
+                    main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -409,7 +413,11 @@ def processVCFRecord(record, table, index, nnewtable):
             gene_dict = gene[0].__dict__
             foundGene = True
             getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
-            main_sub_dict[index]["General"][0]["Genome"] = str(gene_dict["genome"])
+            for key in gene_dict.keys():
+                if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                                       "variants", "listofvariants",
+                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
+                    main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
@@ -765,7 +773,11 @@ def annotate():
         lenn = len(list(item1[1].items()))
         print(lenn)
         for subitem in zip(*item1[1].values()):
-            newtablehtmlbody += "<tr><td>%s</td>" % item1[0]
+            newtablehtmlbody += """<tr><td>%s
+                <br>
+                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                +
+                </button></td>""" % item1[0]
             for i in range(lenn):
                 mainKey = list(keys.keys())[i]
                 for item in list(subitem[i].items()):
