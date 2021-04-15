@@ -2,9 +2,16 @@
 {% block content %}
 <script defer>
     var init = [];
+    var subkeyinit = [];
+    var subsubkeyinit = [];
     var expanded = false;
     var allData = {{allData|tojson}};
-
+    var subkeys = JSON.parse('{{subkeys|safe}}');
+    var defaults = ["Civic-Variants-CIViC: Civic Variant Evidence Score",
+    "Civic-Clinical Evidences","Cosmic-CMC-COSMIC: GERP++ RS score",
+    "Cosmic-CMC-COSMIC: Minimum SIFT score","Cosmic-CMC-COSMIC: Prediction corresponding to the minimum sift score",
+    "Cadd-SIFTcat","Cadd-SIFTval","Cadd-PolyPhenCat","Cadd-PolyPhenVal","Cadd-GerpRS","Cadd-PHRED"
+    ]
     var popupdata = {{popupdata|tojson}};
 
     var maintable = null;
@@ -55,7 +62,7 @@
                         ${subkey}
                     </label>
                 `);
-                if(selectedKeys.includes(selectedText + "-" + subkey + "-" + String(index)) || !init.includes(selectedText)){ 
+                if(selectedKeys.includes(selectedText + "-" + subkey + "-" + String(index)) || (!subkeyinit.includes(selectedText) && defaults.includes(selectedText + "-" + subkey))){ 
                     checkboxes.lastElementChild.firstElementChild.checked = true;
                     if(!selectedKeys.includes(selectedText + "-" + subkey + "-" + String(index))){
                         selectedKeys.push(selectedText + "-" + subkey + "-" + String(index));
@@ -84,6 +91,7 @@
         }
         console.log(subkeys);
         checkboxes.style.display = "block";
+        subkeyinit.push(selectedText);
     }
 
     function resetSubSubKeys(subKeys, checkbox){
@@ -109,12 +117,13 @@
                         ${subsubkey}
                     </label>
                 `)
-                if(selectedKeys.includes(selectedText + "-" + subsubkey + "-" + subkeys[mainKey][subkey][subsubkey]) || !init.includes(selectedText)) checkboxes.lastElementChild.firstElementChild.checked = true;
+                if(selectedKeys.includes(selectedText + "-" + subsubkey + "-" + subkeys[mainKey][subkey][subsubkey]) || (defaults.includes(selectedText + subsubkey) && !subsubkeyinit.includes(selectedText))) checkboxes.lastElementChild.firstElementChild.checked = true;
             })
         if(!init.includes(selectedText)){
             init.push(selectedText);
         }
         checkboxes.style.display = "block";
+        subsubkeyinit.push(selectedText);
     }
 
     function changeSelectText(label){
@@ -158,6 +167,7 @@
                       },
                       {
                           "aaSorting": false,
+                          "visible":false,
                           "targets": "_all",
                       },
                       {
@@ -214,6 +224,7 @@
                  {
                      "orderable": false,
                      "aaSorting": false,
+                     "visible":false,
                      "targets": "_all",
                  },
                  {
@@ -258,7 +269,6 @@
          })
 
     }
-    setTimeout(()=>toNormalDataTable(),2000);
     function toggleFilter(){
         let filterB = document.getElementById("fltr");
         if(filterB.innerText.includes(">")){
@@ -276,6 +286,7 @@
     }
 
     window.addEventListener("load",() => {
+        toNormalDataTable()
         var span = document.getElementsByClassName("close")[0];
         var modal = document.getElementById("myModal");
         span.onclick = function() {
@@ -294,6 +305,19 @@
                 document.body.style.zoom = "100%";
             }
         }
+        defaults.forEach(defaultt => {
+            let parts = defaultt.split("-");
+            let found = null;
+            parts.forEach(part => {
+                if(!found)
+                    found = subkeys[part];
+                else
+                    found = found[part];
+            });
+            console.log(found);
+            if(found)
+                maintable.api().columns([found]).visible(true);
+        });
     })
     function toggleModal(select){
         let header = select.value.split("-").pop();

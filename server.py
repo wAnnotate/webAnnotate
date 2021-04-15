@@ -50,9 +50,9 @@ def index():
 def getGeneInfo(gene_id, table):
     geneData = gene_client.getgene(gene_id)
     if "Summary" not in geneData:
-        table["Summary"].append("No data avaliable")
+        table["Summary"] = ("No data avaliable")
     else:
-        table["Summary"].append(geneData["Summary"])
+        table["Summary"] = (geneData["Summary"])
     """
     if "entrezgene" not in geneData:
         table["entrezgene"].append("No data avaliable")
@@ -334,6 +334,18 @@ def formatListOfLists(listofdicts):
                 del dictionary[key]
     return listofdicts
 
+def formatDataForKeys(data,mainkeys,dictDescFunc):
+    for cs in data:
+        keys = list(cs.keys())
+        for key in keys:
+            if key not in mainkeys:
+                del cs[key]
+            else:
+                data = cs[key]
+                cs[dictDescFunc(key)] = data
+                del cs[key]
+
+
 def processVCFRecord(record, table, index, nnewtable):
     print("new record")
     foundGene = False
@@ -342,22 +354,8 @@ def processVCFRecord(record, table, index, nnewtable):
         index:{
             "Civic":[],
             "Cosmic":[],
-            "Summary":[],
-            "Expression":[],
             "Cadd":[],
-            "Clingen":[],
-            "dbnsfp":[],
-            "dbsnp":[],
-            "clinvar":[],
-            "evs":[],
-            "mutdb":[],
-            "gwassnps":[],
-            "docm":[],
-            "snpedia":[],
-            "emv":[],
-            "wellderly":[],
-            "exac":[],
-            "grasp":[]
+            "General":[{}],
         }
     }
     
@@ -395,7 +393,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene, variant = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
             foundGene = True
-            getGeneInfo(gene.gene_id, main_sub_dict[index])
+            getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -406,7 +404,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene = getGeneFromLocation(record.CHROM, record.POS)
             gene_dict = gene[0].__dict__
             foundGene = True
-            getGeneInfo(gene[0].gene_id, main_sub_dict[index])
+            getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
@@ -440,6 +438,12 @@ def processVCFRecord(record, table, index, nnewtable):
                                     else:
                                         cadd_dict[key] = "No data available"
                                 main_sub_dict[index]["Cadd"].append(cadd_dict)
+                        else:
+                            temp1 = {}
+                            for key2 in cadd.keys:
+                                temp1[key2] = "No data avilable"
+                            main_sub_dict[index]["Cadd"].append(temp1)
+
         except:
             print(traceback.format_exc())
         try:
@@ -454,137 +458,119 @@ def processVCFRecord(record, table, index, nnewtable):
         except:
             print(traceback.format_exc())
         try:
-            civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos).copy()
-            if civicdata:
-                count = 0
-                for var in civicdata:
-                    variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
-                    assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
-                    clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
-                    civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
-                    civicdatagene = formatListOfLists([civicdatagene])
-                    for cs in clinical_significances:
-                        keys = list(cs.keys())
-                        for key in keys:
-                            if key not in dictKeys.civicClinicalEvidences:
-                                del cs[key]
-                            else:
-                                data = cs[key]
-                                cs[dictKeys.civicDesc(key)] = data
-                                del cs[key]
-                    
-                    for cs in assertions:
-                        keys = list(cs.keys())
-                        for key in keys:
-                            if key not in dictKeys.civicAssertions:
-                                del cs[key]
-                            else:
-                                data = cs[key]
-                                cs[dictKeys.civicDesc(key)] = data
-                                del cs[key]
-                    for cs in variant_groups:
-                        keys = list(cs.keys())
-                        for key in keys:
-                            if key not in dictKeys.civicVariantGroups:
-                                del cs[key]
-                            else:
-                                data = cs[key]
-                                cs[dictKeys.civicDesc(key)] = data
-                                del cs[key]
-                    for cs in civicdatagene:
-                        keys = list(cs.keys())
-                        for key in keys:
-                            if key not in dictKeys.civicGenes:
-                                del cs[key]
-                            else:
-                                data = cs[key]
-                                cs[dictKeys.civicDesc(key)] = data
-                                del cs[key]
-                    """
-                    variant_groups = json2html.convert(json = variant_groups, escape = False)
-                    assertions = json2html.convert(json = assertions, escape = False)
-                    clinical_significances = json2html.convert(json = clinical_significances, escape = False)
-                    genehtml = json2html.convert(json = civicdatagene, escape=False)
-                    """
-                    genehtml = civicdatagene
-                    keys = list(var.keys())
-                    for key in keys:
-                        if key in ["variant"]:
-                            continue
-                        if key not in dictKeys.civicVariants:
-                            del var[key]
-                            continue
-                        
-                        data = var[key]
-                        var[dictKeys.civicDesc(key)] = data
-                        del var[key]
-                    temp = {}
-                    for key in list(civic_variants_template.keys()):
-                        temp[key] = var[key]
-                    var = temp.copy()
-                    """
-                    html = json2html.convert(json=var)
-                    """
-                    html = var
-                    CivicDict = {
-                        "Variants":html if html else civic_variants_template,
-                        "Variant Groups":variant_groups if variant_groups else "No data available",
-                        "Genes":genehtml if genehtml else "No data avaliable",
-                        "Assertions":assertions if assertions else "No data available",
-                        "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
-                    }
-                    main_sub_dict[index]["Civic"].append(CivicDict)
-                    count += 1
+            
+            print("civic inner",record.ALT)
+            if record.ALT:
+                for i in record.ALT:
+                    civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos,str(record.REF),str(i)).copy()
+                    if civicdata:
+                        count = 0
+                        for var in civicdata:
+                            variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
+                            assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
+                            clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
+                            civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
+                            civicdatagene = formatListOfLists([civicdatagene])
+                            formatDataForKeys(clinical_significances,dictKeys.civicClinicalEvidences,dictKeys.civicDesc)
+                            formatDataForKeys(assertions,dictKeys.civicAssertions,dictKeys.civicDesc)
+                            formatDataForKeys(variant_groups,dictKeys.civicVariantGroups,dictKeys.civicDesc)
+                            formatDataForKeys(civicdatagene,dictKeys.civicGenes,dictKeys.civicDesc)
+                            genehtml = civicdatagene
+                            keys = list(var.keys())
+                            for key in keys:
+                                if key in ["variant"]:
+                                    continue
+                                if key not in dictKeys.civicVariants:
+                                    del var[key]
+                                    continue
+                                
+                                data = var[key]
+                                var[dictKeys.civicDesc(key)] = data
+                                del var[key]
+                            temp = {}
+                            for key in list(civic_variants_template.keys()):
+                                temp[key] = var[key]
+                            var = temp.copy()
+                            html = var
+                            CivicDict = {
+                                "Variants":html if html else civic_variants_template,
+                                "Variant Groups":variant_groups if variant_groups else "No data available",
+                                "Genes":genehtml if genehtml else "No data avaliable",
+                                "Assertions":assertions if assertions else "No data available",
+                                "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
+                            }
+                            main_sub_dict[index]["Civic"].append(CivicDict)
+                            count += 1
+                    else:
+                        main_sub_dict[index]["Civic"].append(
+                            {
+                                "Variants": civic_variants_template,
+                                "Variant Groups":"No data available",
+                                "Genes":"No data available",
+                                "Assertions":"No data available",
+                                "Clinical Evidences":"No data available",
+                            }
+                        )
+
         except:
             print(traceback.format_exc())
         try:
-            cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos)
-            if not cosmicdata:
-                mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
-                cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
-            if cosmicdata:
-                count = 0
-                for row in cosmicdata:
-                    resistanceMutationsHtml = ""
-                    if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
-                        resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
-                        for res in resistanceMutations:
-                            reskeys = list(res.keys())
-                            for key in reskeys:
-                                if key not in dictKeys.cosmicResistanceMutations:
-                                    del res[key]
+            if record.ALT:
+                for i in record.ALT:
+                    cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos,str(record.REF),str(i))
+                    if not cosmicdata:
+                        mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
+                        cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
+                    if cosmicdata:
+                        count = 0
+                        for row in cosmicdata:
+                            resistanceMutationsHtml = ""
+                            if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
+                                resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
+                                for res in resistanceMutations:
+                                    reskeys = list(res.keys())
+                                    for key in reskeys:
+                                        if key not in dictKeys.cosmicResistanceMutations:
+                                            del res[key]
+                                        else:
+                                            res[dictKeys.cosmicDesc(key)] = res[key]
+                                            del res[key]
+                                """
+                                if resistanceMutations:
+                                    resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
+                                """
+                            keys = list(row.keys())
+                            for key in keys:
+                                if (key not in dictKeys.cosmicCMC):
+                                    del row[key]
+                                elif not row[key]:
+                                    row[key] = "No data available"
                                 else:
-                                    res[dictKeys.cosmicDesc(key)] = res[key]
-                                    del res[key]
-                        """
-                        if resistanceMutations:
-                            resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
-                        """
-                    keys = list(row.keys())
-                    for key in keys:
-                        if (key not in dictKeys.cosmicCMC):
-                            del row[key]
-                        elif not row[key]:
-                            row[key] = "No data available"
-                        else:
-                            row[dictKeys.cosmicDesc(key)] = row[key]
-                            del row[key]
-                    temp = {}
-                    for key in list(cosmic_CMC_template.keys()):
-                        if key in row:
-                            temp[key] = row[key]
-                        else:
-                            temp[key] = "No data available"
-                    row = temp
-                        
-                    variantData = json2html.convert(json = row, escape=False)
-                    variantData = row
-                    CosmicDict = {
-                        "CMC":variantData if variantData else cosmic_CMC_template,
-                        "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
-                    }
-                    main_sub_dict[index]["Cosmic"].append(CosmicDict)
-                    count += 1
+                                    row[dictKeys.cosmicDesc(key)] = row[key]
+                                    del row[key]
+                            temp = {}
+                            for key in list(cosmic_CMC_template.keys()):
+                                if key in row:
+                                    temp[key] = row[key]
+                                else:
+                                    temp[key] = "No data available"
+                            row = temp
+
+                            variantData = json2html.convert(json = row, escape=False)
+                            variantData = row
+                            CosmicDict = {
+                                "CMC":variantData if variantData else cosmic_CMC_template,
+                                "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
+                            }
+                            main_sub_dict[index]["Cosmic"].append(CosmicDict)
+                            count += 1
+                    else:
+                        main_sub_dict[index]["Cosmic"].append(
+                            {
+                                "CMC":cosmic_CMC_template,
+                                "Resistance Mutations":"No data available"
+                            }
+                        )
         except Exception as exp:
             print(index, "- variant exp: ", exp)
             print(traceback.format_exc())
@@ -630,10 +616,31 @@ def processVCFRecord(record, table, index, nnewtable):
     table[index] = subdict
     if greatest_len > 0:
         nnewtable[str(index)] = {
-            "Cosmic":main_sub_dict[index]["Cosmic"],
             "Civic":main_sub_dict[index]["Civic"],
+            "Cosmic":main_sub_dict[index]["Cosmic"],
             "Cadd":main_sub_dict[index]["Cadd"]
         }
+
+def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
+    addedkeys.append(key)
+    if isdict:
+        if itemkey not in civickeys:
+            civickeys[itemkey] = {}
+        civickeys[itemkey][key] = keycount
+    else:
+        civickeys[itemkey] = keycount
+    return keycount + 1
+
+def getInnerAndHeaderHtmls(elements,key,popupdata):
+    innerhtml = "<option value="" selected>""</option>"
+    for element in elements:
+        innerhtml += """
+                        <option value="%s-%s">%s</option>
+                     """ % (key,list(element.values())[0],list(element.values())[0])
+        popupdata[key+"-"+list(element.values())[0]] = json2html.convert(json = element)
+    innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
+                      """ % (innerhtml)
+    return innerhtmlselect
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
@@ -730,15 +737,6 @@ def annotate():
     newtablehtml = ""
     newtablehtmlheader = """<thead><tr>"""
     newtablehtmlheader += "<th>Row Index</th>"
-    """
-    for key in allKeys:
-        if len(allKeys[key]):
-            for key2 in allKeys[key]:
-                newtablehtmlheader += "<th>%s</th>" % key2
-        else:
-            newtablehtmlheader += "<th>%s</th>" % key
-    """
-
     keys = {
         "Civic":{},
         "Cosmic":{},
@@ -751,89 +749,35 @@ def annotate():
     addedkeys = []
     popupdata = {}
     for item1 in list(nnewtable.items()):
-        for subitem in zip(item1[1]["Cosmic"],item1[1]["Civic"],item1[1]["Cadd"]):
+        lenn = len(list(item1[1].items()))
+        print(lenn)
+        for subitem in zip(*item1[1].values()):
             newtablehtmlbody += "<tr><td>%s</td>" % item1[0]
-            for item in list(subitem[1].items()):
-                val = item[1]
-                if type(val) == list and type(val[0]) == dict:
-                    innerhtml = "<option value="" selected>""</option>"
-                    for element in val:
-                        innerhtml += """
-                                        <option value="%s-%s-%s-%s">%s</option>
-                                     """ % (item[0],rowc,c,list(element.values())[0],list(element.values())[0] )
-                        popupdata["%s-%s-%s-%s" % (item[0],rowc,c,list(element.values())[0])] = json2html.convert(json = element)
-                    innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
-                                    """ % (innerhtml)
-                    newtablehtmlbody += "<td>%s</td>" % (innerhtmlselect)
-                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    if item[0] not in addedkeys:
-                        addedkeys.append(item[0])
-                        keys["Civic"][item[0]] = keyc
-                        keyc += 1
-                elif type(val) == dict:
-                    for key in val:
-                        newtablehtmlbody += "<td>%s</td>" % (val[key])
-                        newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                        if key not in addedkeys:
-                            addedkeys.append(key)
-                            if item[0] not in keys["Civic"]:
-                                keys["Civic"][item[0]] = {}
-                            keys["Civic"][item[0]][key] = keyc
-                            keyc += 1
-                else:
-                    newtablehtmlbody += "<td>%s</td>" % (val)
-                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    if item[0] not in addedkeys:
-                        addedkeys.append(item[0])
-                        keys["Civic"][item[0]] = keyc
-                        keyc += 1
+            for i in range(lenn):
+                mainKey = list(keys.keys())[i]
+                for item in list(subitem[i].items()):
+                    val = item[1]
+                    if type(val) == list and type(val[0]) == dict:
+                        newtablehtmlbody += "<td>%s</td>" % (
+                            getInnerAndHeaderHtmls(val,
+                            "%s-%s-%s" % (item[0],rowc,c),
+                            popupdata))
+                        newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                        if item[0] not in addedkeys:
+                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                    elif type(val) == dict:
+                        for key in val:
+                            newtablehtmlbody += "<td>%s</td>" % (val[key])
+                            newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                            if key not in addedkeys:
+                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                    else:
+                        newtablehtmlbody += "<td>%s</td>" % (val)
+                        newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                        if item[0] not in addedkeys:
+                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
 
-                c += 1
-            for item in list(subitem[0].items()):
-                val = item[1]
-                if type(val) == list and type(val[0]) == dict:
-                    innerhtml = "<option value="" selected>""</option>"
-                    for element in val:
-                        innerhtml += """
-                                        <option value="%s-%s-%s-%s">%s</option>
-                                     """ % (item[0],rowc,c,list(element.values())[0],list(element.values())[0] )
-                        popupdata["%s-%s-%s-%s" % (item[0],rowc,c,list(element.values())[0])] = json2html.convert(json = element)
-                    innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
-                                    """ % (innerhtml)
-                    newtablehtmlbody += "<td>%s</td>" % (innerhtmlselect)
-                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    if item[0] not in addedkeys:
-                        addedkeys.append(item[0])
-                        keys["Cosmic"][item[0]] = keyc
-                        keyc += 1
-                elif type(val) == dict:
-                    for key in val:
-                        newtablehtmlbody += "<td>%s</td>" % (val[key])
-                        newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                        if key not in addedkeys:
-                            addedkeys.append(key)
-                            if item[0] not in keys["Cosmic"]:
-                                keys["Cosmic"][item[0]] = {}
-                            keys["Cosmic"][item[0]][key] = keyc
-                            keyc += 1
-                else:
-                    newtablehtmlbody += "<td>%s</td>" % (val)
-                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                    if item[0] not in addedkeys:
-                        addedkeys.append(item[0])
-                        keys["Cosmic"][item[0]] = keyc
-                        keyc += 1
-
-                c += 1
-            for item in list(subitem[2].items()):
-                val = item[1]
-                newtablehtmlbody += "<td>%s</td>" % (val)
-                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                if item[0] not in addedkeys:
-                    addedkeys.append(item[0])
-                    keys["Cadd"][item[0]] = keyc
-                    keyc += 1
-                c += 1
+                    c += 1
             newtablehtmlbody += "</tr>"
         rowc += 1
 
