@@ -53,13 +53,12 @@ def getGeneInfo(gene_id, table):
         table["Summary"] = ("No data avaliable")
     else:
         table["Summary"] = (geneData["Summary"])
-    """
     if "entrezgene" not in geneData:
-        table["entrezgene"].append("No data avaliable")
+        table["entrezgene"] = ("No data avaliable")
     else:
-        table["entrezgene"].append('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+        table["entrezgene"] = ('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                    % (geneData["entrezgene"], geneData["entrezgene"]))
-    
+    """
     clinical_data = "no data"
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
@@ -249,10 +248,11 @@ def getVariantsData():
 
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
-    rowid = int(rowid)
+    rowid = str(rowid)
+
     # print(session["table"]["entrezgene"][rowid])
-    if "ncbi" in session["table"]["entrezgene"][rowid]:
-        gene = session["table"]["entrezgene"][rowid].split("href=\"")[1].split("\"")[0].split("/")[-1]
+    if "ncbi" in session["table"][rowid]["General"][0]["entrezgene"]:
+        gene = session["table"][rowid]["General"][0]["entrezgene"].split("href=\"")[1].split("\"")[0].split("/")[-1]
         if requests.get(
                 "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).status_code == 500:
             return render_template("visualization.html", table="No data available", dta="[]")
@@ -356,8 +356,6 @@ def processVCFRecord(record, table, index, nnewtable):
             "Cosmic":[],
             "Cadd":[],
             "General":[{
-                "Summary":"No data available",
-                "Genome":"No data available"
             }],
         }
     }
@@ -402,6 +400,7 @@ def processVCFRecord(record, table, index, nnewtable):
                                                        "variants", "listofvariants",
                                                        "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
+            main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -418,6 +417,7 @@ def processVCFRecord(record, table, index, nnewtable):
                                                        "variants", "listofvariants",
                                                        "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
+            main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
@@ -753,7 +753,7 @@ def annotate():
             for element in newtable[key][key2]:
                 nnewtable[key][key2].append(element)
             print(key," :",key2," :",len(nnewtable[key][key2]))
-    session["table"] = table.copy()
+    session["table"] = nnewtable.copy()
     newtablehtml = ""
     newtablehtmlheader = """<thead><tr>"""
     newtablehtmlheader += "<th>Row Index</th>"
