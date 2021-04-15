@@ -23,10 +23,7 @@ def executeQuery(connection, query):
 
 
 def indexDb(connection):
-    query = """CREATE UNIQUE INDEX mutation_index on mutations (id)"""
-    executeQuery(connection, query)
-    query = """CREATE INDEX location_index 
-    on locations (id, grch37_chr, grch37_start, grch37_stop, grch38_chr, grch38_start, grch38_stop)"""
+    query = """CREATE INDEX IF NOT EXISTS mutation_index on mutations (chr)"""
     executeQuery(connection, query)
 
 

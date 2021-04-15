@@ -81,11 +81,9 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
     def findVariantsFromLocation(assembly, chr, pos, ref=None, alt=None):  # "GRCh37", "X", 100000, "A", "T"
         query = """"""
         if assembly == "GRCh37":
-            query = """SELECT * FROM mutations WHERE id IN 
-            (SELECT id FROM locations WHERE grch37_chr = ? AND grch37_start <= ? AND grch37_stop >= ?)"""
+            query = """SELECT * FROM mutations WHERE chr = ? AND grch37_start <= ? AND grch37_stop >= ?"""
         elif assembly == "GRCh38":
-            query = """SELECT * FROM mutations WHERE id IN 
-            (SELECT id FROM locations WHERE grch38_chr = ? AND grch38_start <= ? AND grch38_stop >= ?)"""
+            query = """SELECT * FROM mutations WHERE chr = ? AND grch38_start <= ? AND grch38_stop >= ?"""
         else:
             return Exception("Unsupported assembly.")
 
