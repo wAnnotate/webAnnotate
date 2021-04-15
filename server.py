@@ -355,7 +355,10 @@ def processVCFRecord(record, table, index, nnewtable):
             "Civic":[],
             "Cosmic":[],
             "Cadd":[],
-            "General":[{}],
+            "General":[{
+                "Summary":"No data available",
+                "Genome":"No data available"
+            }],
         }
     }
     
@@ -394,6 +397,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene_dict = gene.__dict__
             foundGene = True
             getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
+            main_sub_dict[index]["General"][0]["Genome"] = str(gene_dict["genome"])
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -405,6 +409,7 @@ def processVCFRecord(record, table, index, nnewtable):
             gene_dict = gene[0].__dict__
             foundGene = True
             getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
+            main_sub_dict[index]["General"][0]["Genome"] = str(gene_dict["genome"])
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
@@ -579,13 +584,13 @@ def processVCFRecord(record, table, index, nnewtable):
                 varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
             print("-------")
             greatest_len = 0
-            for key in ["Cosmic","Civic","Cadd"]:
+            for key in ["Cosmic","Civic","Cadd","General"]:
                 if len(main_sub_dict[index][key]) > greatest_len:
                     greatest_len = len(main_sub_dict[index][key])
             if greatest_len:
                 for k in main_sub_dict[index]:
                     print(k,",",main_sub_dict[index][k])
-            for key in ["Cosmic","Civic","Cadd"]:
+            for key in ["Cosmic","Civic","Cadd","General"]:
                 while greatest_len > len(main_sub_dict[index][key]):
                     if key == "Cosmic":
                         main_sub_dict[index][key].append(
@@ -600,7 +605,7 @@ def processVCFRecord(record, table, index, nnewtable):
                             temp1[key2] = "No data avilable"
                         main_sub_dict[index][key].append(temp1)
                         print("key: ", key, ": ",main_sub_dict[index][key])
-                    else:
+                    elif key == "Civic":
                         main_sub_dict[index][key].append(
                             {
                                 "Variants": civic_variants_template,
@@ -610,6 +615,8 @@ def processVCFRecord(record, table, index, nnewtable):
                                 "Clinical Evidences":"No data available",
                             }
                         )
+                    else:
+                        main_sub_dict[index][key].append(main_sub_dict[index][key][0].copy())
         except:
             print(traceback.format_exc())
 
@@ -618,7 +625,8 @@ def processVCFRecord(record, table, index, nnewtable):
         nnewtable[str(index)] = {
             "Civic":main_sub_dict[index]["Civic"],
             "Cosmic":main_sub_dict[index]["Cosmic"],
-            "Cadd":main_sub_dict[index]["Cadd"]
+            "Cadd":main_sub_dict[index]["Cadd"],
+            "General": main_sub_dict[index]["General"]
         }
 
 def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
@@ -667,6 +675,10 @@ def annotate():
                 <label for="Cadd">
                     <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                    Cadd
+                </label>
+                <label for="General">
+                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                   General
                 </label>
                 ''' 
     subKeys = {
@@ -740,7 +752,8 @@ def annotate():
     keys = {
         "Civic":{},
         "Cosmic":{},
-        "Cadd":{}
+        "Cadd":{},
+        "General":{}
     }
     newtablehtmlbody = "<tbody>"
     c = 0

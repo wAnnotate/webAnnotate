@@ -69,23 +69,6 @@
                     }
                 }
             })
-        /*
-        Object.keys(subkeys)
-            .forEach(mainkey => {
-                Object.keys(subkeys[mainkey])
-                    .forEach(subkey => {
-                        if(typeof subkeys[mainkey][subkey] == 'number' && mainkey == selectedText){
-                            maintable.api().columns([subkeys[mainkey][subkey]]).visible(true);
-                        }
-                        else{
-                            Object.keys(subkeys[mainkey][subkey])
-                                .forEach(subsubkey => {
-
-                                })
-                        }
-                    })
-            })
-        */
         if(!init.includes(selectedText)){
             init.push(selectedText);
         }
