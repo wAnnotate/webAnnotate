@@ -669,9 +669,9 @@ def processVCFRecord(record, index, nnewtable):
 
 @app.route("/showresult", methods=["GET"])
 def showresult():
+    global tempSession
     (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
     session["table"] = nnewtable.copy()
-    del tempSession[session["stamp"]]
     return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
 
 @app.route("/isresult", methods = ['GET'])
@@ -709,6 +709,9 @@ def getInnerAndHeaderHtmls(elements,key,popupdata):
 @app.route("/annotate", methods=["POST"])
 def annotate():
     try:
+        global tempSession
+        if "stamp" in session and session["stamp"] in tempSession:
+            del tempSession[session["stamp"]]
         if "table" in session:
             print("table in")
             del session["table"]
