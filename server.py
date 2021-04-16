@@ -336,6 +336,7 @@ def formatListOfLists(listofdicts):
 
 def formatDataForKeys(data,mainkeys,dictDescFunc):
     for cs in data:
+        cs = dict(cs)
         keys = list(cs.keys())
         for key in keys:
             if key not in mainkeys:
