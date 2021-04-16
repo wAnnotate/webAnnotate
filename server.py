@@ -77,7 +77,7 @@ def getGeneInfo(gene_id, table):
 def logo():
     print("logo asked for")
     return send_from_directory(os.path.join(app.root_path, 'static', 'images'),
-                               'logom.PNG', mimetype='image/png')
+                               'logom.png', mimetype='image/png')
 
 
 @app.route("/constructannotation", methods=["GET"])
