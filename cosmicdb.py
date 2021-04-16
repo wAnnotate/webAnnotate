@@ -1,30 +1,31 @@
 import csv
-import sqlite3
-from sqlite3 import Error
+# import sqlite3
+import requests
+import base64
 
 resistanceMutationsPath = "static/cosmicdb/CosmicResistanceMutations.tsv"
 HGNCPath = "static/cosmicdb/CosmicHGNC.tsv"
 cgcPath = "static/cosmicdb/cancer_gene_census.csv"
-cmcExportDbPath = "cosmic/sqlite/cmc_export.db"
+# cmcExportDbPath = "cosmic/sqlite/cmc_export.db"
 
 
-def dict_factory(cursor, row):
+"""def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
-    return d
+    return d"""
 
 
-def createConnection(dbFile):
+"""def createConnection(dbFile):
     connection = None
     try:
         connection = sqlite3.connect(dbFile)
-    except Error as err:
+    except sqlite3.Error as err:
         print(err)
-    return connection
+    return connection"""
 
 
-def executeQuery(connection, query, t=()):
+"""def executeQuery(connection, query, t=()):
     try:
         cursor = connection.cursor()
         connection.row_factory = sqlite3.Row
@@ -32,9 +33,45 @@ def executeQuery(connection, query, t=()):
         rows = cursor.fetchmany()
         keys = list(map(lambda x: x[0], cursor.description))
         return rows, keys
-    except Error as err:
+    except sqlite3.Error as err:
         print(err)
-        return None, None
+        return None, None"""
+
+
+def executeQueryOnline(query):
+    apikey = "1rDmswqZAo6oucxJuRwznLQFDW2"
+    dbowner = "burakbozdag"
+    dbname = "cmc_export.db"
+    sql = base64.b64encode(query.encode("ascii")).decode("ascii")
+    url = "https://api.dbhub.io/v1/query"
+    data = {
+        "apikey": apikey,
+        "dbowner": dbowner,
+        "dbname": dbname,
+        "sql": sql
+    }
+    r = requests.post(url=url, data=data)
+    if not r.ok:
+        return None
+    decoded = r.json()
+    if not decoded:  # Empty list
+        return None
+    rowDictList = []
+    for row in decoded:
+        rowDict = {}
+        for column in row:
+            key = column["Name"]
+            value = column["Value"]
+            if column["Type"] == 4:  # Integer
+                value = int(value)
+            elif column["Type"] == 5:  # Float
+                value = float(value)
+            else:  # String
+                value = str(value)
+            rowDict[key] = value
+        rowDictList.append(rowDict)
+    print("cosmic query executed")
+    return rowDictList
 
 
 class CosmicDb:  # GRCh37 (Ensembl v75)
@@ -79,23 +116,26 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
 
     @staticmethod
     def findVariantsFromLocation(assembly, chr, pos, ref=None, alt=None):  # "GRCh37", "X", 100000, "A", "T"
-        query = """"""
+        chr = str(chr)
+        pos = int(pos)
         if assembly == "GRCh37":
-            query = """SELECT * FROM mutations WHERE chr = ? AND grch37_start <= ? AND grch37_stop >= ?"""
+            query = f"SELECT * FROM mutations WHERE chr = {chr} AND grch37_start <= {pos} AND grch37_stop >= {pos}"
         elif assembly == "GRCh38":
-            query = """SELECT * FROM mutations WHERE chr = ? AND grch38_start <= ? AND grch38_stop >= ?"""
+            query = f"SELECT * FROM mutations WHERE chr = {chr} AND grch38_start <= {pos} AND grch38_stop >= {pos}"
         else:
             return Exception("Unsupported assembly.")
 
-        conn = createConnection(dbFile=cmcExportDbPath)
-        rows, keys = executeQuery(conn, query, (chr, pos, pos))
-        row_dict_list = []
-        if rows:
+        # conn = createConnection(dbFile=cmcExportDbPath)
+        # rows, keys = executeQuery(query, t=(chr, pos, pos))
+        row_dict_list = executeQueryOnline(query)
+        """if rows:
             for row in rows:
                 row_dict = {}
                 for index in range(len(row)):
                     row_dict[keys[index]] = row[index]
-                row_dict_list.append(row_dict)
+                row_dict_list.append(row_dict)"""
+        if row_dict_list is None:
+            return []
 
         if ref is not None and alt is not None:
             for rd in row_dict_list.copy():
@@ -150,7 +190,6 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
 
 genes = db.findVariantsFromLocation("GRCh37", 7, 140453136, "A", "T")
 for gs in genes:
-    print("1")
     for g in gs.items():
         print(g[0], "-> ", g[1])
         print()"""

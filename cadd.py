@@ -4,6 +4,7 @@ server = "https://cadd.gs.washington.edu/api/v1.0/"
 
 keys = ["SIFTcat", "SIFTval", "PolyPhenCat", "PolyPhenVal", "GerpRS", "Grantham", "RawScore", "PHRED"]
 
+
 def getSNV(version, chrom, pos, ref=None, alt=None):  # GRCh37, X, 10000, A, T
     chrom = str(chrom)
     pos = str(pos)
