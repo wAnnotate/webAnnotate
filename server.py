@@ -670,6 +670,8 @@ def processVCFRecord(record, index, nnewtable):
 @app.route("/showresult", methods=["GET"])
 def showresult():
     (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
+    session["table"] = nnewtable.copy()
+    del tempSession[session["stamp"]]
     return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
 
 @app.route("/isresult", methods = ['GET'])
