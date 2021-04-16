@@ -356,6 +356,17 @@ def processVCFRecord(record, table, index, nnewtable):
             "Cosmic":[],
             "Cadd":[],
             "General":[{
+                "Summary":"No data available",
+                "entrezgene":"No data available",
+                "contig":"No data available",
+                "strand":"No data available",
+                "start":"No data available",
+                "end":"No data available",
+                "genome":"No data available",
+                "biotype":"No data available",
+                "gene_id":"No data available",
+                "gene_name":"No data available",
+                "Expression":"No data available",
             }],
         }
     }
@@ -398,7 +409,7 @@ def processVCFRecord(record, table, index, nnewtable):
             for key in gene_dict.keys():
                 if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                                        "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
+                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic","db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
             main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
@@ -415,218 +426,213 @@ def processVCFRecord(record, table, index, nnewtable):
             for key in gene_dict.keys():
                 if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                                        "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic"]:
+                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic","db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
             main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
             print("getGeneFromLocation: ", e)
             foundGene = False
-
-    if foundGene:
-        try:
-            count = 0
-            mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
-            varianthtml = "No data available"
-            variantdata = ""
-            hgsvs = []
-        except:
-            print(traceback.format_exc())
-        try:
-            if record.ALT:
-                for i in record.ALT:
-                    hgsvs.append(str(variant_client.format_hgvs(mappedChr, mappedPos, record.REF, str(i))))
-        except:
-            print(traceback.format_exc())
-        try:
-            if record.ALT:
-                for i in record.ALT:
-                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        cadd_data = cadd.getSNV("GRCh37",mappedChr,mappedPos,record.REF,str(i))
-                        if cadd_data and type(cadd_data) == list:
-                            for d in cadd_data:
-                                cadd_dict = {}
-                                for key in cadd.keys:
-                                    if key in d:
-                                        cadd_dict[key.replace("-"," ").replace("_"," ")] = d[key]
-                                    else:
-                                        cadd_dict[key] = "No data available"
-                                main_sub_dict[index]["Cadd"].append(cadd_dict)
-                        else:
-                            temp1 = {}
-                            for key2 in cadd.keys:
-                                temp1[key2] = "No data avilable"
-                            main_sub_dict[index]["Cadd"].append(temp1)
-
-        except:
-            print(traceback.format_exc())
-        try:
-            print("hgsvs ", index)
-            if record.ID:
-                count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, subdict, hgsvs,
-                                                    variantdata)
-            elif hgsvs:
-                for hgsv in hgsvs:
-                    count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
-                                                        variantdata)
-        except:
-            print(traceback.format_exc())
-        try:
-            
-            print("civic inner",record.ALT)
-            if record.ALT:
-                for i in record.ALT:
-                    civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos,str(record.REF),str(i)).copy()
-                    if civicdata:
-                        count = 0
-                        for var in civicdata:
-                            variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
-                            assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
-                            clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
-                            civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
-                            civicdatagene = formatListOfLists([civicdatagene])
-                            formatDataForKeys(clinical_significances,dictKeys.civicClinicalEvidences,dictKeys.civicDesc)
-                            formatDataForKeys(assertions,dictKeys.civicAssertions,dictKeys.civicDesc)
-                            formatDataForKeys(variant_groups,dictKeys.civicVariantGroups,dictKeys.civicDesc)
-                            formatDataForKeys(civicdatagene,dictKeys.civicGenes,dictKeys.civicDesc)
-                            genehtml = civicdatagene
-                            keys = list(var.keys())
-                            for key in keys:
-                                if key in ["variant"]:
-                                    continue
-                                if key not in dictKeys.civicVariants:
-                                    del var[key]
-                                    continue
-                                
-                                data = var[key]
-                                var[dictKeys.civicDesc(key)] = data
-                                del var[key]
-                            temp = {}
-                            for key in list(civic_variants_template.keys()):
-                                temp[key] = var[key]
-                            var = temp.copy()
-                            html = var
-                            CivicDict = {
-                                "Variants":html if html else civic_variants_template,
-                                "Variant Groups":variant_groups if variant_groups else "No data available",
-                                "Genes":genehtml if genehtml else "No data avaliable",
-                                "Assertions":assertions if assertions else "No data available",
-                                "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
-                            }
-                            main_sub_dict[index]["Civic"].append(CivicDict)
-                            count += 1
-                    else:
-                        main_sub_dict[index]["Civic"].append(
-                            {
-                                "Variants": civic_variants_template,
-                                "Variant Groups":"No data available",
-                                "Genes":"No data available",
-                                "Assertions":"No data available",
-                                "Clinical Evidences":"No data available",
-                            }
-                        )
-
-        except:
-            print(traceback.format_exc())
-        try:
-            if record.ALT:
-                for i in record.ALT:
-                    cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos,str(record.REF),str(i))
-                    if not cosmicdata:
-                        mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
-                        cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
-                    if cosmicdata:
-                        count = 0
-                        for row in cosmicdata:
-                            resistanceMutationsHtml = ""
-                            if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
-                                resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
-                                for res in resistanceMutations:
-                                    reskeys = list(res.keys())
-                                    for key in reskeys:
-                                        if key not in dictKeys.cosmicResistanceMutations:
-                                            del res[key]
-                                        else:
-                                            res[dictKeys.cosmicDesc(key)] = res[key]
-                                            del res[key]
-                                """
-                                if resistanceMutations:
-                                    resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
-                                """
-                            keys = list(row.keys())
-                            for key in keys:
-                                if (key not in dictKeys.cosmicCMC):
-                                    del row[key]
-                                elif not row[key]:
-                                    row[key] = "No data available"
+    try:
+        count = 0
+        mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
+        varianthtml = "No data available"
+        variantdata = ""
+        hgsvs = []
+    except:
+        print(traceback.format_exc())
+    try:
+        if record.ALT:
+            for i in record.ALT:
+                hgsvs.append(str(variant_client.format_hgvs(mappedChr, mappedPos, record.REF, str(i))))
+    except:
+        print(traceback.format_exc())
+    try:
+        if record.ALT:
+            for i in record.ALT:
+                if len(str(i)) == 1 and len(str(record.REF)) == 1:
+                    cadd_data = cadd.getSNV("GRCh37",mappedChr,mappedPos,record.REF,str(i))
+                    if cadd_data and type(cadd_data) == list:
+                        for d in cadd_data:
+                            cadd_dict = {}
+                            for key in cadd.keys:
+                                if key in d:
+                                    cadd_dict[key.replace("-"," ").replace("_"," ")] = d[key]
                                 else:
-                                    row[dictKeys.cosmicDesc(key)] = row[key]
-                                    del row[key]
-                            temp = {}
-                            for key in list(cosmic_CMC_template.keys()):
-                                if key in row:
-                                    temp[key] = row[key]
-                                else:
-                                    temp[key] = "No data available"
-                            row = temp
-
-                            variantData = json2html.convert(json = row, escape=False)
-                            variantData = row
-                            CosmicDict = {
-                                "CMC":variantData if variantData else cosmic_CMC_template,
-                                "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
-                            }
-                            main_sub_dict[index]["Cosmic"].append(CosmicDict)
-                            count += 1
+                                    cadd_dict[key] = "No data available"
+                            main_sub_dict[index]["Cadd"].append(cadd_dict)
                     else:
-                        main_sub_dict[index]["Cosmic"].append(
-                            {
-                                "CMC":cosmic_CMC_template,
-                                "Resistance Mutations":"No data available"
-                            }
-                        )
-        except Exception as exp:
-            print(index, "- variant exp: ", exp)
-            print(traceback.format_exc())
-        try:
-            if variantdata:
-                varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
-            print("-------")
-            greatest_len = 0
-            for key in ["Cosmic","Civic","Cadd","General"]:
-                if len(main_sub_dict[index][key]) > greatest_len:
-                    greatest_len = len(main_sub_dict[index][key])
-            if greatest_len:
-                for k in main_sub_dict[index]:
-                    print(k,",",main_sub_dict[index][k])
-            for key in ["Cosmic","Civic","Cadd","General"]:
-                while greatest_len > len(main_sub_dict[index][key]):
-                    if key == "Cosmic":
-                        main_sub_dict[index][key].append(
-                            {
-                                "CMC":cosmic_CMC_template,
-                                "Resistance Mutations":"No data available"
-                            }
-                        )
-                    elif key == "Cadd":
                         temp1 = {}
                         for key2 in cadd.keys:
                             temp1[key2] = "No data avilable"
-                        main_sub_dict[index][key].append(temp1)
-                        print("key: ", key, ": ",main_sub_dict[index][key])
-                    elif key == "Civic":
-                        main_sub_dict[index][key].append(
-                            {
-                                "Variants": civic_variants_template,
-                                "Variant Groups":"No data available",
-                                "Genes":"No data available",
-                                "Assertions":"No data available",
-                                "Clinical Evidences":"No data available",
-                            }
-                        )
-                    else:
-                        main_sub_dict[index][key].append(main_sub_dict[index][key][0].copy())
-        except:
-            print(traceback.format_exc())
+                        main_sub_dict[index]["Cadd"].append(temp1)
+    except:
+        print(traceback.format_exc())
+    try:
+        print("hgsvs ", index)
+        if record.ID:
+            count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, subdict, hgsvs,
+                                                variantdata)
+        elif hgsvs:
+            for hgsv in hgsvs:
+                count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
+                                                    variantdata)
+    except:
+        print(traceback.format_exc())
+    try:
+        
+        print("civic inner",record.ALT)
+        if record.ALT:
+            for i in record.ALT:
+                civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos,str(record.REF),str(i)).copy()
+                if civicdata:
+                    count = 0
+                    for var in civicdata:
+                        variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
+                        assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
+                        clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
+                        civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
+                        civicdatagene = formatListOfLists([civicdatagene])
+                        formatDataForKeys(clinical_significances,dictKeys.civicClinicalEvidences,dictKeys.civicDesc)
+                        formatDataForKeys(assertions,dictKeys.civicAssertions,dictKeys.civicDesc)
+                        formatDataForKeys(variant_groups,dictKeys.civicVariantGroups,dictKeys.civicDesc)
+                        formatDataForKeys(civicdatagene,dictKeys.civicGenes,dictKeys.civicDesc)
+                        genehtml = civicdatagene
+                        keys = list(var.keys())
+                        for key in keys:
+                            if key in ["variant"]:
+                                continue
+                            if key not in dictKeys.civicVariants:
+                                del var[key]
+                                continue
+                            
+                            data = var[key]
+                            var[dictKeys.civicDesc(key)] = data
+                            del var[key]
+                        temp = {}
+                        for key in list(civic_variants_template.keys()):
+                            temp[key] = var[key]
+                        var = temp.copy()
+                        html = var
+                        CivicDict = {
+                            "Variants":html if html else civic_variants_template,
+                            "Variant Groups":variant_groups if variant_groups else "No data available",
+                            "Genes":genehtml if genehtml else "No data avaliable",
+                            "Assertions":assertions if assertions else "No data available",
+                            "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
+                        }
+                        main_sub_dict[index]["Civic"].append(CivicDict)
+                        count += 1
+                else:
+                    main_sub_dict[index]["Civic"].append(
+                        {
+                            "Variants": civic_variants_template,
+                            "Variant Groups":"No data available",
+                            "Genes":"No data available",
+                            "Assertions":"No data available",
+                            "Clinical Evidences":"No data available",
+                        }
+                    )
+    except:
+        print(traceback.format_exc())
+    try:
+        if record.ALT:
+            for i in record.ALT:
+                cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos,str(record.REF),str(i))
+                if not cosmicdata:
+                    mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
+                    cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
+                if cosmicdata:
+                    count = 0
+                    for row in cosmicdata:
+                        resistanceMutationsHtml = ""
+                        if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
+                            resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
+                            for res in resistanceMutations:
+                                reskeys = list(res.keys())
+                                for key in reskeys:
+                                    if key not in dictKeys.cosmicResistanceMutations:
+                                        del res[key]
+                                    else:
+                                        res[dictKeys.cosmicDesc(key)] = res[key]
+                                        del res[key]
+                            """
+                            if resistanceMutations:
+                                resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
+                            """
+                        keys = list(row.keys())
+                        for key in keys:
+                            if (key not in dictKeys.cosmicCMC):
+                                del row[key]
+                            elif not row[key]:
+                                row[key] = "No data available"
+                            else:
+                                row[dictKeys.cosmicDesc(key)] = row[key]
+                                del row[key]
+                        temp = {}
+                        for key in list(cosmic_CMC_template.keys()):
+                            if key in row:
+                                temp[key] = row[key]
+                            else:
+                                temp[key] = "No data available"
+                        row = temp
+                        variantData = json2html.convert(json = row, escape=False)
+                        variantData = row
+                        CosmicDict = {
+                            "CMC":variantData if variantData else cosmic_CMC_template,
+                            "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
+                        }
+                        main_sub_dict[index]["Cosmic"].append(CosmicDict)
+                        count += 1
+                else:
+                    main_sub_dict[index]["Cosmic"].append(
+                        {
+                            "CMC":cosmic_CMC_template,
+                            "Resistance Mutations":"No data available"
+                        }
+                    )
+    except Exception as exp:
+        print(index, "- variant exp: ", exp)
+        print(traceback.format_exc())
+    try:
+        if variantdata:
+            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
+        print("-------")
+        greatest_len = 0
+        for key in ["Cosmic","Civic","Cadd","General"]:
+            if len(main_sub_dict[index][key]) > greatest_len:
+                greatest_len = len(main_sub_dict[index][key])
+        if greatest_len:
+            for k in main_sub_dict[index]:
+                print(k,",",main_sub_dict[index][k])
+        for key in ["Cosmic","Civic","Cadd","General"]:
+            while greatest_len > len(main_sub_dict[index][key]):
+                if key == "Cosmic":
+                    main_sub_dict[index][key].append(
+                        {
+                            "CMC":cosmic_CMC_template,
+                            "Resistance Mutations":"No data available"
+                        }
+                    )
+                elif key == "Cadd":
+                    temp1 = {}
+                    for key2 in cadd.keys:
+                        temp1[key2] = "No data avilable"
+                    main_sub_dict[index][key].append(temp1)
+                    print("key: ", key, ": ",main_sub_dict[index][key])
+                elif key == "Civic":
+                    main_sub_dict[index][key].append(
+                        {
+                            "Variants": civic_variants_template,
+                            "Variant Groups":"No data available",
+                            "Genes":"No data available",
+                            "Assertions":"No data available",
+                            "Clinical Evidences":"No data available",
+                        }
+                    )
+                else:
+                    main_sub_dict[index][key].append(main_sub_dict[index][key][0].copy())
+    except:
+        print(traceback.format_exc())
 
     table[index] = subdict
     if greatest_len > 0:
