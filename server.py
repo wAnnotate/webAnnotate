@@ -151,24 +151,98 @@ def constructannotation():
 @app.route("/annotate", methods=["GET"])
 def prevAnnotated():
     if "table" in session:
-        ths = [" ", "rowid", "expression", "gene_id", "gene_name", "biotype", "contig",
-               "start", "end", "strand", "genome", "summary", "clingen", "entrezgene",
-               "variantdata"]
-        table = session["table"].copy()
-        tablehtml = """<table id = "table" class="table table-bordered"><thead><tr>"""
-        for th in ths:
-            if th != "variants":
-                tablehtml += "<th>%s</th>" % th
-        tablehtml += "</tr></thead><tbody>"
-        count = len(list(table.values())[0])
-        for c in range(count):
-            tablehtml += "<tr>"
-            for th in ths:
-                if th != "variants":
-                    tablehtml += "<td>%s</td>" % table[th][c]
-            tablehtml += "</tr>"
-        tablehtml += "</tbody></table>"
-        return render_template("annotated.html", table=tablehtml)
+        nnewtable = session["table"].copy()
+        mainKeys = '''
+                <label for="Cosmic">
+                    <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                   Cosmic
+                </label>
+                <label for="Civic">
+                    <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                   Civic
+                </label>
+                <label for="Cadd">
+                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                   Cadd
+                </label>
+                <label for="General">
+                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                   General
+                </label>
+                ''' 
+                
+        allKeys = {
+            "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
+            "Civic-Variant Groups": [],
+            "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
+            "Civic-Assertions":[],
+            "Civic-Clinical Evidences":[],
+            "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
+            "Cosmic-Resistance Mutations": [],
+            "Cadd-ConsScore":[],
+            "Cadd-mirSVR Score":[],
+            "Cadd-dbscSNV ada score":[],
+            "Cadd-dbscSNV rf score":[],
+            "Cadd-RawScore":[],
+            "Cadd-PHRED":[]
+        }
+        newtablehtml = ""
+        newtablehtmlheader = """<thead><tr>"""
+        newtablehtmlheader += "<th>Row Index</th>"
+        keys = {
+            "Civic":{},
+            "Cosmic":{},
+            "Cadd":{},
+            "General":{}
+        }
+        newtablehtmlbody = "<tbody>"
+        c = 0
+        keyc = 1
+        rowc = 0
+        addedkeys = []
+        popupdata = {}
+        for item1 in list(nnewtable.items()):
+            lenn = len(list(item1[1].items()))
+            print(lenn)
+            for subitem in zip(*item1[1].values()):
+                newtablehtmlbody += """<tr><td>%s
+                    <br>
+                    <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                    +
+                    </button></td>""" % item1[0]
+                for i in range(lenn):
+                    mainKey = list(keys.keys())[i]
+                    for item in list(subitem[i].items()):
+                        val = item[1]
+                        if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
+                            newtablehtmlbody += "<td>%s</td>" % (
+                                getInnerAndHeaderHtmls(val,
+                                "%s-%s-%s" % (item[0],rowc,c),
+                                popupdata))
+                            newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                            if item[0] not in addedkeys:
+                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                        elif type(val) == dict:
+                            for key in val:
+                                newtablehtmlbody += "<td>%s</td>" % (val[key])
+                                newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                                if key not in addedkeys:
+                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                        else:
+                            newtablehtmlbody += "<td>%s</td>" % (val)
+                            newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                            if item[0] not in addedkeys:
+                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+
+                        c += 1
+                newtablehtmlbody += "</tr>"
+            rowc += 1
+
+        c = 1
+        newtablehtmlheader += "</tr></thead>"
+        newtablehtmlbody += "</tbody>"
+        newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
+        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allKeys = json.dumps(allKeys), allData = nnewtable,popupdata = popupdata)
     return redirect("/")
 
 
