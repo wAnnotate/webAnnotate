@@ -26,7 +26,6 @@
         }
     }
     var selectedKeys = [];
-    var allKeys = JSON.parse('{{allKeys|safe}}');
     function addOrRemoveKey(checkbox){
         if(checkbox.checked)
             selectedKeys.push(checkbox.id);
@@ -120,26 +119,8 @@
                             .filter(key =>label.getAttribute("for") != key);
             maintable.api().columns([parseInt(label.getAttribute("for").split("-").pop())]).visible(false);
         }
-        //label.parentElement.style.display = "none";
-        //expanded = false;
     }
 
-    /*
-    function showCheckBoxes(select){
-        let mainKey = document.getElementById("mainkeys").value;
-        let key = mainKey+"-"+select.value;
-        let checkboxes = document.getElementById("checkboxes");
-        Object.entries(allKeys[key])
-            .forEach(entry => {
-                entry[1].forEach(checkKey => {
-                    let checkBox = document.createElement("input");
-                    checkBox.type = "checkbox";
-                    checkBox.id = checkKey;
-                    checkboxes.append(checkBox);
-                });
-            });
-    }
-    */
     function generateDataTable(id,cols){
         $("#"+id).dataTable({
                   "orderable": false,

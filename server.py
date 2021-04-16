@@ -1,4 +1,4 @@
-from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory, session
+from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory, session, copy_current_request_context
 import vcf
 import base64
 from io import BufferedReader, TextIOWrapper
@@ -20,6 +20,7 @@ import mapping  # mapping.remap()
 import universalKeys as dictKeys  # selected dict keys and their descriptions
 import cadd
 from collections import OrderedDict
+import threading
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
@@ -39,7 +40,7 @@ manager = Manager()
 app.config.from_object(__name__)
 Session(app)
 biothingsAssembly = "hg19"
-
+tempSession = {}
 
 
 
@@ -59,7 +60,6 @@ def getGeneInfo(gene_id, table):
     else:
         table["entrezgene"] = ('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                    % (geneData["entrezgene"], geneData["entrezgene"]))
-    """
     clinical_data = "no data"
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
@@ -70,8 +70,7 @@ def getGeneInfo(gene_id, table):
             for key in geneData["clingen"]["clinical_validity"]:
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
                                                                  key["mondo"], key["online_report"], key["sop"]))
-    table["clingen"].append(clinical_data)
-    """
+    table["clingen"] = (clinical_data)
 
 @app.route("/static/images/logom.png")
 def logo():
@@ -170,22 +169,6 @@ def prevAnnotated():
                    General
                 </label>
                 ''' 
-                
-        allKeys = {
-            "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
-            "Civic-Variant Groups": [],
-            "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
-            "Civic-Assertions":[],
-            "Civic-Clinical Evidences":[],
-            "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
-            "Cosmic-Resistance Mutations": [],
-            "Cadd-ConsScore":[],
-            "Cadd-mirSVR Score":[],
-            "Cadd-dbscSNV ada score":[],
-            "Cadd-dbscSNV rf score":[],
-            "Cadd-RawScore":[],
-            "Cadd-PHRED":[]
-        }
         newtablehtml = ""
         newtablehtmlheader = """<thead><tr>"""
         newtablehtmlheader += "<th>Row Index</th>"
@@ -242,7 +225,7 @@ def prevAnnotated():
         newtablehtmlheader += "</tr></thead>"
         newtablehtmlbody += "</tbody>"
         newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
-        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allKeys = json.dumps(allKeys), allData = nnewtable,popupdata = popupdata)
+        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
     return redirect("/")
 
 
@@ -381,13 +364,12 @@ def processVariantData(variant, count, hgsvs, index):
     return None, None
 
 
-def getVariantData(id, assembly, index, count, subdict, hgsvs, variantdata):
+def getVariantData(id, assembly, index, count, hgsvs, variantdata):
     variant = variant_client.getvariant(id, assembly=assembly)
     if type(variant) == dict and "_id" in variant:
         vardict, vardata = processVariantData(variant, count, hgsvs, index)
         if vardict:
             variantdata += vardata
-            subdict["listofvariants"].append(vardict)
             count += 1
     elif type(variant) == list:
         for var in variant:
@@ -397,7 +379,6 @@ def getVariantData(id, assembly, index, count, subdict, hgsvs, variantdata):
             vardict, vardata = processVariantData(var, count, hgsvs, index)
             if vardict:
                 variantdata += vardata
-                subdict["listofvariants"].append(vardict)
                 count += 1
     return count, variantdata
 
@@ -421,8 +402,9 @@ def formatDataForKeys(data,mainkeys,dictDescFunc):
                 del cs[key]
 
 
-def processVCFRecord(record, table, index, nnewtable):
+def processVCFRecord(record, index, nnewtable):
     print("new record")
+    mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
     foundGene = False
     gene_dict = {}
     main_sub_dict = {
@@ -442,31 +424,10 @@ def processVCFRecord(record, table, index, nnewtable):
                 "gene_id":"No data available",
                 "gene_name":"No data available",
                 "Expression":"No data available",
+                "clingen":"No data available"
             }],
         }
     }
-    
-    subdict = {
-        " ": [],
-        "expression": [],
-        "gene_id": [],
-        "gene_name": [],
-        "biotype": [],
-        "contig": [],
-        "start": [],
-        "end": [],
-        "variants": [],
-        "strand": [],
-        "genome": [],
-        "summary": [],
-        "clingen": [],
-        "entrezgene": [],
-        "variantdata": [],
-        "listofvariants": [],
-        "listofvariantscivic": [],
-        "listofvariantscosmic": []
-    }
-
     civic_variants_template = {}
     for key in dictKeys.civicVariants:
         civic_variants_template[dictKeys.civicDesc(key)] = "No data available"
@@ -510,7 +471,6 @@ def processVCFRecord(record, table, index, nnewtable):
     try:
         count = 0
         mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
-        varianthtml = "No data available"
         variantdata = ""
         hgsvs = []
     except:
@@ -545,11 +505,11 @@ def processVCFRecord(record, table, index, nnewtable):
     try:
         print("hgsvs ", index)
         if record.ID:
-            count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, subdict, hgsvs,
+            count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, hgsvs,
                                                 variantdata)
         elif hgsvs:
             for hgsv in hgsvs:
-                count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, subdict, hgsvs,
+                count, variantdata = getVariantData(hgsv, biothingsAssembly, index, count, hgsvs,
                                                     variantdata)
     except:
         print(traceback.format_exc())
@@ -619,7 +579,6 @@ def processVCFRecord(record, table, index, nnewtable):
                 if cosmicdata:
                     count = 0
                     for row in cosmicdata:
-                        resistanceMutationsHtml = ""
                         if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
                             resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
                             for res in resistanceMutations:
@@ -630,10 +589,6 @@ def processVCFRecord(record, table, index, nnewtable):
                                     else:
                                         res[dictKeys.cosmicDesc(key)] = res[key]
                                         del res[key]
-                            """
-                            if resistanceMutations:
-                                resistanceMutationsHtml = json2html.convert(json=resistanceMutations)
-                            """
                         keys = list(row.keys())
                         for key in keys:
                             if (key not in dictKeys.cosmicCMC):
@@ -669,16 +624,11 @@ def processVCFRecord(record, table, index, nnewtable):
         print(index, "- variant exp: ", exp)
         print(traceback.format_exc())
     try:
-        if variantdata:
-            varianthtml = '<select onchange="toggleModal(this)"><option value=""></option>%s</select>' % variantdata
         print("-------")
         greatest_len = 0
         for key in ["Cosmic","Civic","Cadd","General"]:
             if len(main_sub_dict[index][key]) > greatest_len:
                 greatest_len = len(main_sub_dict[index][key])
-        if greatest_len:
-            for k in main_sub_dict[index]:
-                print(k,",",main_sub_dict[index][k])
         for key in ["Cosmic","Civic","Cadd","General"]:
             while greatest_len > len(main_sub_dict[index][key]):
                 if key == "Cosmic":
@@ -693,7 +643,6 @@ def processVCFRecord(record, table, index, nnewtable):
                     for key2 in cadd.keys:
                         temp1[key2] = "No data avilable"
                     main_sub_dict[index][key].append(temp1)
-                    print("key: ", key, ": ",main_sub_dict[index][key])
                 elif key == "Civic":
                     main_sub_dict[index][key].append(
                         {
@@ -709,7 +658,6 @@ def processVCFRecord(record, table, index, nnewtable):
     except:
         print(traceback.format_exc())
 
-    table[index] = subdict
     if greatest_len > 0:
         nnewtable[str(index)] = {
             "Civic":main_sub_dict[index]["Civic"],
@@ -717,6 +665,19 @@ def processVCFRecord(record, table, index, nnewtable):
             "Cadd":main_sub_dict[index]["Cadd"],
             "General": main_sub_dict[index]["General"]
         }
+
+
+@app.route("/showresult", methods=["GET"])
+def showresult():
+    (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
+    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+
+@app.route("/isresult", methods = ['GET'])
+def isresult():
+    print(session.keys())
+    if "stamp" in session and session["stamp"] in tempSession:
+        return Response(response=json.dumps({"status":1}))
+    return Response(response=json.dumps({"status":0}))
 
 def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
     addedkeys.append(key)
@@ -739,162 +700,135 @@ def getInnerAndHeaderHtmls(elements,key,popupdata):
                       """ % (innerhtml)
     return innerhtmlselect
 
+
+
+
+
 @app.route("/annotate", methods=["POST"])
 def annotate():
-    start = time.time()
-    session["dbChoice"] = int(request.form["db"])
-    print("DB choice:", session["dbChoice"])
-    global data
-    data = EnsemblRelease(session["dbChoice"])
-    file = request.files["efile"]
-    file.name = file.filename
-    file = BufferedReader(file)
-    file = TextIOWrapper(file)
-    # print(type(file))
-    vcf_reader = vcf.Reader(file)
-    mainKeys = '''
-                <label for="Cosmic">
-                    <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                   Cosmic
-                </label>
-                <label for="Civic">
-                    <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                   Civic
-                </label>
-                <label for="Cadd">
-                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                   Cadd
-                </label>
-                <label for="General">
-                    <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                   General
-                </label>
-                ''' 
-    subKeys = {
-        "Cosmic":["CMC-6","Resistance Mutations-7"],
-        "Civic":["Variants-1","Variant Groups-2","Genes-3","Assertions-4", "Clinical Evidences-5"],
-        "Cadd": ["ConsScore-8","mirSVR Score-9","dbscSNV ada score-10","dbscSNV rf score-11","RawScore-12","PHRED-13"]
-    }
+    try:
+        if "table" in session:
+            print("table in")
+            del session["table"]
+        if "result" in session:
+            print("result deleted")
+            del session["result"]
+        start = time.time()
+        print(request.form["db"])
+        session["dbChoice"] = int(request.form["db"])
+        print("DB choice:", session["dbChoice"])
+        global data
+        data = EnsemblRelease(session["dbChoice"])
+        records = []
+        file = request.files["efile"]
+        file.name = file.filename
+        file = BufferedReader(file)
+        file = TextIOWrapper(file)
+        stamp = time.time()
+        session["stamp"] = stamp
+        vcf_reader = vcf.Reader(file)
+        for record in vcf_reader:
+            records.append(record)
+        # print(type(file))
+        @copy_current_request_context
+        def annotatefunc(records,stamp):
+            global tempSession
+            mainKeys = '''
+                        <label for="Cosmic">
+                            <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                           Cosmic
+                        </label>
+                        <label for="Civic">
+                            <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                           Civic
+                        </label>
+                        <label for="Cadd">
+                            <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                           Cadd
+                        </label>
+                        <label for="General">
+                            <input type="checkbox" id="General" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                           General
+                        </label>
+                        ''' 
+            newtable = manager.dict()
+            nnewtable = {}
+            pool = Pool(os.cpu_count())
+            count = 0
+            for record in records:
+                pool.apply_async(processVCFRecord, (record, count, newtable))
+                count += 1
+            pool.close()
+            pool.join()
+            for key in newtable:
+                nnewtable[key] = {}
+                for key2 in newtable[key]:
+                    nnewtable[key][key2] = []
+                    for element in newtable[key][key2]:
+                        nnewtable[key][key2].append(element)
+            session["table"] = nnewtable.copy()
+            newtablehtml = ""
+            newtablehtmlheader = """<thead><tr>"""
+            newtablehtmlheader += "<th>Row Index</th>"
+            keys = {
+                "Civic":{},
+                "Cosmic":{},
+                "Cadd":{},
+                "General":{}
+            }
+            newtablehtmlbody = "<tbody>"
+            c = 0
+            keyc = 1
+            rowc = 0
+            addedkeys = []
+            popupdata = {}
+            for item1 in list(nnewtable.items()):
+                lenn = len(list(item1[1].items()))
+                for subitem in zip(*item1[1].values()):
+                    newtablehtmlbody += """<tr><td>%s
+                        <br>
+                        <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                        +
+                        </button></td>""" % item1[0]
+                    for i in range(lenn):
+                        mainKey = list(keys.keys())[i]
+                        for item in list(subitem[i].items()):
+                            val = item[1]
+                            if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
+                                newtablehtmlbody += "<td>%s</td>" % (
+                                    getInnerAndHeaderHtmls(val,
+                                    "%s-%s-%s" % (item[0],rowc,c),
+                                    popupdata))
+                                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                                if item[0] not in addedkeys:
+                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                            elif type(val) == dict:
+                                for key in val:
+                                    newtablehtmlbody += "<td>%s</td>" % (val[key])
+                                    newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                                    if key not in addedkeys:
+                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                            else:
+                                newtablehtmlbody += "<td>%s</td>" % (val)
+                                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                                if item[0] not in addedkeys:
+                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                            c += 1
+                    newtablehtmlbody += "</tr>"
+                rowc += 1
 
-    allKeys = {
-        "Civic-Variants": [dictKeys.civicDesc(k) for k in dictKeys.civicVariants],
-        "Civic-Variant Groups": [],
-        "Civic-Genes":[dictKeys.civicDesc(k) for k in dictKeys.civicGenes],
-        "Civic-Assertions":[],
-        "Civic-Clinical Evidences":[],
-        "Cosmic-CMC": [dictKeys.cosmicDesc(k) for k in dictKeys.cosmicCMC],
-        "Cosmic-Resistance Mutations": [],
-        "Cadd-ConsScore":[],
-        "Cadd-mirSVR Score":[],
-        "Cadd-dbscSNV ada score":[],
-        "Cadd-dbscSNV rf score":[],
-        "Cadd-RawScore":[],
-        "Cadd-PHRED":[]
-    }
-
-
-    ttable = manager.dict()
-    table = {
-        " ": [],
-        "rowid": [],
-        "expression": [],
-        "gene_id": [],
-        "gene_name": [],
-        "biotype": [],
-        "contig": [],
-        "start": [],
-        "end": [],
-        "strand": [],
-        "genome": [],
-        "summary": [],
-        "clingen": [],
-        "entrezgene": [],
-        "variants": [],
-        "variantdata": [],
-        "listofvariants": [],
-        "listofvariantscivic": [],
-        "listofvariantscosmic": []
-    }
-    newtable = manager.dict()
-    nnewtable = {}
-
-    pool = Pool(os.cpu_count())
-    count = 0
-    processes = []
-    for record in vcf_reader:
-        pool.apply_async(processVCFRecord, (record, ttable, count, newtable))
-        count += 1
-    pool.close()
-    pool.join()
-    count = len(list(ttable.keys()))
-    for key in newtable:
-        nnewtable[key] = {}
-        for key2 in newtable[key]:
-            nnewtable[key][key2] = []
-            for element in newtable[key][key2]:
-                nnewtable[key][key2].append(element)
-            print(key," :",key2," :",len(nnewtable[key][key2]))
-    session["table"] = nnewtable.copy()
-    newtablehtml = ""
-    newtablehtmlheader = """<thead><tr>"""
-    newtablehtmlheader += "<th>Row Index</th>"
-    keys = {
-        "Civic":{},
-        "Cosmic":{},
-        "Cadd":{},
-        "General":{}
-    }
-    newtablehtmlbody = "<tbody>"
-    c = 0
-    keyc = 1
-    rowc = 0
-    addedkeys = []
-    popupdata = {}
-    for item1 in list(nnewtable.items()):
-        lenn = len(list(item1[1].items()))
-        print(lenn)
-        for subitem in zip(*item1[1].values()):
-            newtablehtmlbody += """<tr><td>%s
-                <br>
-                <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
-                +
-                </button></td>""" % item1[0]
-            for i in range(lenn):
-                mainKey = list(keys.keys())[i]
-                for item in list(subitem[i].items()):
-                    val = item[1]
-                    if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
-                        newtablehtmlbody += "<td>%s</td>" % (
-                            getInnerAndHeaderHtmls(val,
-                            "%s-%s-%s" % (item[0],rowc,c),
-                            popupdata))
-                        newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                        if item[0] not in addedkeys:
-                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
-                    elif type(val) == dict:
-                        for key in val:
-                            newtablehtmlbody += "<td>%s</td>" % (val[key])
-                            newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                            if key not in addedkeys:
-                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
-                    else:
-                        newtablehtmlbody += "<td>%s</td>" % (val)
-                        newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                        if item[0] not in addedkeys:
-                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
-
-                    c += 1
-            newtablehtmlbody += "</tr>"
-        rowc += 1
-
-    c = 1
-    newtablehtmlheader += "</tr></thead>"
-    newtablehtmlbody += "</tbody>"
-    newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
-
-
-    print("time passed:",time.time()-start)
-    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allKeys = json.dumps(allKeys), allData = nnewtable,popupdata = popupdata)
+            c = 1
+            newtablehtmlheader += "</tr></thead>"
+            newtablehtmlbody += "</tbody>"
+            newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
+            tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable,popupdata)
+        thread = threading.Thread(target = annotatefunc, args = [records,stamp])
+        thread.start()
+        print("time passed:",time.time()-start)
+        return Response(response=json.dumps({"status":1}))
+    except:
+        print(traceback.format_exc())
+        return Response(response=json.dumps({"status":0}))
 
 
 if __name__ == "__main__":

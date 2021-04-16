@@ -1,5 +1,38 @@
 {% extends "main.html" %}
 {% block content %}
+<script>
+
+  function isresult(){
+      fetch("/isresult")
+        .then(reply => reply.json())
+        .then(json => {
+          console.log(json);
+          if(!json["status"])
+            setTimeout(() => isresult(),2000);
+          else
+            window.location = "/showresult"
+        });
+  }
+
+  function uploadFile(btn){
+    let formelement = btn.parentElement.parentElement.parentElement;
+    const data = new FormData();
+    let file = document.getElementById("file").files[0];
+    let db = document.getElementById("db").value;
+    data.append("db",db);
+    data.append("efile",file);
+    fetch("/annotate", {
+        method: 'post',
+        body: data
+    })
+    .then(resp => resp.json())
+    .then(json => {
+      if(json["status"] == 1){
+        isresult();
+      }
+    });
+  }
+</script>
 <style>
     input,select{
     max-width: 280px;
@@ -27,7 +60,7 @@
         </div>
         <div class="form-group row">
           <div class="col-sm-10">
-            <input id="submitBtn" type="submit" class="btn btn-outline-primary" value="Upload">
+            <input id="submitBtn" type="button" class="btn btn-outline-primary" value="Upload" onclick="uploadFile(this)">
           </div>
         </div>
     </form>
