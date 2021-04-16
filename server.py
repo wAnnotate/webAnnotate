@@ -19,6 +19,7 @@ import time
 import mapping  # mapping.remap()
 import universalKeys as dictKeys  # selected dict keys and their descriptions
 import cadd
+from collections import OrderedDict
 
 app = Flask(__name__)
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
@@ -336,7 +337,6 @@ def formatListOfLists(listofdicts):
 
 def formatDataForKeys(data,mainkeys,dictDescFunc):
     for cs in data:
-        cs = dict(cs)
         keys = list(cs.keys())
         for key in keys:
             if key not in mainkeys:
@@ -789,7 +789,7 @@ def annotate():
                 mainKey = list(keys.keys())[i]
                 for item in list(subitem[i].items()):
                     val = item[1]
-                    if type(val) == list and type(val[0]) == dict:
+                    if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
                         newtablehtmlbody += "<td>%s</td>" % (
                             getInnerAndHeaderHtmls(val,
                             "%s-%s-%s" % (item[0],rowc,c),
