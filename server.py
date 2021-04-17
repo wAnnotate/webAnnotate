@@ -678,9 +678,11 @@ def showresult():
 @app.route("/isresult", methods = ['GET'])
 def isresult():
     print(session.keys())
+    progress = 0
     if "stamp" in session and session["stamp"] in tempSession:
         return Response(response=json.dumps({"status":1}))
-    progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
+    if str(session["stamp"])+"progress" in tempSession and str(session["stamp"])+"count" in tempSession:
+        progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
     return Response(response=json.dumps({"status":0,"progress":progress}))
 
 def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
