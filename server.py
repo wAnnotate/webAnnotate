@@ -46,6 +46,10 @@ tempSession = {}
 
 @app.route("/")
 def index():
+
+    if "stamp" in session:
+        print(time.time()-session["stamp"])
+
     if "done" in session or ("stamp" in session and str(session["stamp"])+"done" in tempSession):
         if "done" in session:
             del session["done"]
@@ -55,6 +59,12 @@ def index():
             if str(session["stamp"])+"done" in tempSession:
                 del tempSession[str(session["stamp"])+"done"]
             del session["stamp"]
+    if "stamp" in session and time.time()-session["stamp"] > 1000:
+        if session["stamp"] in tempSession:
+            del tempSession[session["stamp"]]
+        if str(session["stamp"])+"done" in tempSession:
+            del tempSession[str(session["stamp"])+"done"]
+        del session["stamp"]
     return render_template("index.html")
 
 
@@ -691,12 +701,14 @@ def showresult():
                 (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
                 return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
             else:
+                print("exception")
                 return redirect("/annotate")
 
 
     elif "result" in session:
         (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
         return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+    print("lastresult")
     return redirect("/annotate")
 
 @app.route("/isresult", methods = ['GET'])
@@ -748,6 +760,7 @@ def haveaprocess():
 def annotate():
     try:
         global tempSession
+        stamp = time.time()
         if "stamp" in session:
             if session["stamp"] in tempSession:
                 del tempSession[session["stamp"]]
@@ -758,6 +771,7 @@ def annotate():
         if "result" in session:
             print("result deleted")
             del session["result"]
+        session["stamp"] = stamp
         start = time.time()
         print(request.form["db"])
         session["dbChoice"] = int(request.form["db"])
@@ -769,8 +783,6 @@ def annotate():
         file.name = file.filename
         file = BufferedReader(file)
         file = TextIOWrapper(file)
-        stamp = time.time()
-        session["stamp"] = stamp
         tempSession[str(stamp)+"progress"] = 0
         vcf_reader = vcf.Reader(file)
         count = 0
@@ -881,6 +893,16 @@ def annotate():
         print("time passed:",time.time()-start)
         return Response(response=json.dumps({"status":1}))
     except:
+        if "stamp" in session:
+            if session["stamp"] in tempSession:
+                del tempSession[session["stamp"]]
+            del session["stamp"]
+        if "table" in session:
+            print("table in")
+            del session["table"]
+        if "result" in session:
+            print("result deleted")
+            del session["result"]
         print(traceback.format_exc())
         return Response(response=json.dumps({"status":0}))
 
