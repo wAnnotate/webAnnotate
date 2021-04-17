@@ -716,7 +716,9 @@ def getInnerAndHeaderHtmls(elements,key,popupdata):
 def annotate():
     try:
         global tempSession
-        if "stamp" in session and session["stamp"] in tempSession:
+        if session["stamp"] in tempSession:
+            del session["stamp"]
+        if "stamp" in session:
             del tempSession[session["stamp"]]
         if "table" in session:
             print("table in")
