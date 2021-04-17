@@ -46,6 +46,15 @@ tempSession = {}
 
 @app.route("/")
 def index():
+    if "done" in session or ("stamp" in session and str(session["stamp"])+"done" in tempSession):
+        if "done" in session:
+            del session["done"]
+        if "stamp" in session:
+            if session["stamp"] in tempSession:
+                del tempSession[session["stamp"]]
+            if str(session["stamp"])+"done" in tempSession:
+                del tempSession[str(session["stamp"])+"done"]
+            del session["stamp"]
     return render_template("index.html")
 
 
@@ -669,22 +678,41 @@ def processVCFRecord(record, index, nnewtable,value):
 
 
 @app.route("/showresult", methods=["GET"])
-def showresult():
+def showresult():   
     global tempSession
-    if "stamp" not in session or session["stamp"] not in tempSession:
-        return redirect("/")
-    (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
-    session["table"] = nnewtable.copy()
-    return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+    if "stamp" in session and session["stamp"] in tempSession:
+        try:
+            (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
+            session["result"] = tempSession[session["stamp"]]
+            session["table"] = nnewtable.copy()
+            return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+        except:
+            if "result" in session:
+                (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
+                return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+            else:
+                return redirect("/annotate")
+
+
+    elif "result" in session:
+        (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
+        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+    return redirect("/annotate")
 
 @app.route("/isresult", methods = ['GET'])
 def isresult():
     print(session.keys())
     progress = 0
-    if "stamp" in session and session["stamp"] in tempSession:
-        return Response(response=json.dumps({"status":1}))
-    if str(session["stamp"])+"progress" in tempSession and str(session["stamp"])+"count" in tempSession:
-        progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
+    try:
+        if "stamp" in session and session["stamp"] in tempSession:
+            session["done"] = "done"
+            return Response(response=json.dumps({"status":1}))
+    except:
+        if "table" in session:
+            return Response(response=json.dumps({"status":1}))
+    if "stamp" in session:
+        if str(session["stamp"])+"progress" in tempSession and str(session["stamp"])+"count" in tempSession:
+            progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
     return Response(response=json.dumps({"status":0,"progress":progress}))
 
 def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
@@ -708,18 +736,22 @@ def getInnerAndHeaderHtmls(elements,key,popupdata):
                       """ % (innerhtml)
     return innerhtmlselect
 
-
-
+@app.route("/haveaprocess", methods = ["GET"])
+def haveaprocess():
+    if "stamp" in session:
+        return Response(response=json.dumps({"status":1}))
+    return Response(response=json.dumps({"status":0}))
+    
 
 
 @app.route("/annotate", methods=["POST"])
 def annotate():
     try:
         global tempSession
-        if session["stamp"] in tempSession:
-            del session["stamp"]
         if "stamp" in session:
-            del tempSession[session["stamp"]]
+            if session["stamp"] in tempSession:
+                del tempSession[session["stamp"]]
+            del session["stamp"]
         if "table" in session:
             print("table in")
             del session["table"]
@@ -841,6 +873,7 @@ def annotate():
                 newtablehtmlbody += "</tbody>"
                 newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
                 tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable,popupdata)
+                tempSession[str(stamp)+"done"] = "done"
             except:
                 print(traceback.format_exc())
         thread = threading.Thread(target = annotatefunc, args = [records,stamp])
