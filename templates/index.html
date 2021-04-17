@@ -31,25 +31,37 @@
   }
 
   function uploadFile(btn){
-    let formelement = btn.parentElement.parentElement.parentElement;
-    const data = new FormData();
-    let file = document.getElementById("file").files[0];
-    let db = document.getElementById("db").value;
-    data.append("db",db);
-    data.append("efile",file);
-    fetch("/annotate", {
-        method: 'post',
-        body: data
-    })
-    .then(resp => resp.json())
-    .then(json => {
-      console.log(json);
-      if(json["status"] == 1){
-        document.getElementById("fileprogress").style.display = "block";
-        btn.disabled = true;
-        isresult();
+    fetch("/haveaprocess")
+      .then(response => response.json())
+      .then(json => {
+        if(!json["status"]){
+          document.getElementById("submitBtn").disabled = false;
+          let formelement = btn.parentElement.parentElement.parentElement;
+          const data = new FormData();
+          let file = document.getElementById("file").files[0];
+          let db = document.getElementById("db").value;
+          data.append("db",db);
+          data.append("efile",file);
+          fetch("/annotate", {
+              method: 'post',
+              body: data
+          })
+          .then(resp => resp.json())
+          .then(json => {
+          console.log(json);
+          if(json["status"] == 1){
+          document.getElementById("fileprogress").style.display = "block";
+          btn.disabled = true;
+          isresult();
       }
     });
+  }
+        else{
+          isresult();
+          document.getElementById("submitBtn").disabled = true;
+          document.getElementById("fileprogress").style.display = "block";
+        }
+      })
   }
 </script>
 <style>
