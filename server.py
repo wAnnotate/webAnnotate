@@ -671,6 +671,8 @@ def processVCFRecord(record, index, nnewtable,value):
 @app.route("/showresult", methods=["GET"])
 def showresult():
     global tempSession
+    if "stamp" not in session or session["stamp"] not in tempSession:
+        return redirect("/")
     (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
     session["table"] = nnewtable.copy()
     return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
