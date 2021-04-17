@@ -8,8 +8,10 @@
         .then(json => {
           console.log(json);
           if(!json["status"]){
-            document.getElementById("fileprogress").style.display = "block";
-            document.getElementById("fileprogress").value = String(json["progress"]);
+            if(json["progress"]){
+                document.getElementById("fileprogress").style.display = "block";
+                document.getElementById("fileprogress").value = String(json["progress"]);
+            }
             setTimeout(() => isresult(),1000);
           }
           else
