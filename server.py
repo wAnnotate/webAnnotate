@@ -402,8 +402,8 @@ def formatDataForKeys(data,mainkeys,dictDescFunc):
                 del cs[key]
 
 
-def processVCFRecord(record, index, nnewtable):
-    print("new record")
+def processVCFRecord(record, index, nnewtable,value):
+    print("new record",value.value)
     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
     foundGene = False
     gene_dict = {}
@@ -665,6 +665,7 @@ def processVCFRecord(record, index, nnewtable):
             "Cadd":main_sub_dict[index]["Cadd"],
             "General": main_sub_dict[index]["General"]
         }
+    value.value = value.value + 1
 
 
 @app.route("/showresult", methods=["GET"])
@@ -679,7 +680,8 @@ def isresult():
     print(session.keys())
     if "stamp" in session and session["stamp"] in tempSession:
         return Response(response=json.dumps({"status":1}))
-    return Response(response=json.dumps({"status":0}))
+    progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
+    return Response(response=json.dumps({"status":0,"progress":progress}))
 
 def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
     addedkeys.append(key)
@@ -731,102 +733,110 @@ def annotate():
         file = TextIOWrapper(file)
         stamp = time.time()
         session["stamp"] = stamp
+        tempSession[str(stamp)+"progress"] = 0
         vcf_reader = vcf.Reader(file)
+        count = 0
         for record in vcf_reader:
             records.append(record)
+            count += 1
+        tempSession[str(stamp)+"count"] = count
         # print(type(file))
         @copy_current_request_context
         def annotatefunc(records,stamp):
-            global tempSession
-            mainKeys = '''
-                        <label for="Cosmic">
-                            <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                           Cosmic
-                        </label>
-                        <label for="Civic">
-                            <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                           Civic
-                        </label>
-                        <label for="Cadd">
-                            <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                           Cadd
-                        </label>
-                        <label for="General">
-                            <input type="checkbox" id="General" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
-                           General
-                        </label>
-                        ''' 
-            newtable = manager.dict()
-            nnewtable = {}
-            pool = Pool(os.cpu_count())
-            count = 0
-            for record in records:
-                pool.apply_async(processVCFRecord, (record, count, newtable))
-                count += 1
-            pool.close()
-            pool.join()
-            for key in newtable:
-                nnewtable[key] = {}
-                for key2 in newtable[key]:
-                    nnewtable[key][key2] = []
-                    for element in newtable[key][key2]:
-                        nnewtable[key][key2].append(element)
-            session["table"] = nnewtable.copy()
-            newtablehtml = ""
-            newtablehtmlheader = """<thead><tr>"""
-            newtablehtmlheader += "<th>Row Index</th>"
-            keys = {
-                "Civic":{},
-                "Cosmic":{},
-                "Cadd":{},
-                "General":{}
-            }
-            newtablehtmlbody = "<tbody>"
-            c = 0
-            keyc = 1
-            rowc = 0
-            addedkeys = []
-            popupdata = {}
-            for item1 in list(nnewtable.items()):
-                lenn = len(list(item1[1].items()))
-                for subitem in zip(*item1[1].values()):
-                    newtablehtmlbody += """<tr><td>%s
-                        <br>
-                        <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
-                        +
-                        </button></td>""" % item1[0]
-                    for i in range(lenn):
-                        mainKey = list(keys.keys())[i]
-                        for item in list(subitem[i].items()):
-                            val = item[1]
-                            if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
-                                newtablehtmlbody += "<td>%s</td>" % (
-                                    getInnerAndHeaderHtmls(val,
-                                    "%s-%s-%s" % (item[0],rowc,c),
-                                    popupdata))
-                                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                                if item[0] not in addedkeys:
-                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
-                            elif type(val) == dict:
-                                for key in val:
-                                    newtablehtmlbody += "<td>%s</td>" % (val[key])
-                                    newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
-                                    if key not in addedkeys:
-                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
-                            else:
-                                newtablehtmlbody += "<td>%s</td>" % (val)
-                                newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
-                                if item[0] not in addedkeys:
-                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
-                            c += 1
-                    newtablehtmlbody += "</tr>"
-                rowc += 1
+            try:
+                global tempSession
+                mainKeys = '''
+                            <label for="Cosmic">
+                                <input type="checkbox" id="Cosmic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                               Cosmic
+                            </label>
+                            <label for="Civic">
+                                <input type="checkbox" id="Civic" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                               Civic
+                            </label>
+                            <label for="Cadd">
+                                <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                               Cadd
+                            </label>
+                            <label for="General">
+                                <input type="checkbox" id="General" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
+                               General
+                            </label>
+                            ''' 
+                newtable = manager.dict()
+                tempSession[str(stamp)+"progress"] = manager.Value('progress',0) 
+                nnewtable = {}
+                pool = Pool(os.cpu_count())
+                count = 0
+                for record in records:
+                    pool.apply_async(processVCFRecord, (record, count, newtable,tempSession[str(stamp)+"progress"]))
+                    count += 1
+                pool.close()
+                pool.join()
+                for key in newtable:
+                    nnewtable[key] = {}
+                    for key2 in newtable[key]:
+                        nnewtable[key][key2] = []
+                        for element in newtable[key][key2]:
+                            nnewtable[key][key2].append(element)
+                session["table"] = nnewtable.copy()
+                newtablehtml = ""
+                newtablehtmlheader = """<thead><tr>"""
+                newtablehtmlheader += "<th>Row Index</th>"
+                keys = {
+                    "Civic":{},
+                    "Cosmic":{},
+                    "Cadd":{},
+                    "General":{}
+                }
+                newtablehtmlbody = "<tbody>"
+                c = 0
+                keyc = 1
+                rowc = 0
+                addedkeys = []
+                popupdata = {}
+                for item1 in list(nnewtable.items()):
+                    lenn = len(list(item1[1].items()))
+                    for subitem in zip(*item1[1].values()):
+                        newtablehtmlbody += """<tr><td>%s
+                            <br>
+                            <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
+                            +
+                            </button></td>""" % item1[0]
+                        for i in range(lenn):
+                            mainKey = list(keys.keys())[i]
+                            for item in list(subitem[i].items()):
+                                val = item[1]
+                                if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
+                                    newtablehtmlbody += "<td>%s</td>" % (
+                                        getInnerAndHeaderHtmls(val,
+                                        "%s-%s-%s" % (item[0],rowc,c),
+                                        popupdata))
+                                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                                    if item[0] not in addedkeys:
+                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                elif type(val) == dict:
+                                    for key in val:
+                                        newtablehtmlbody += "<td>%s</td>" % (val[key])
+                                        newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
+                                        if key not in addedkeys:
+                                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                                else:
+                                    newtablehtmlbody += "<td>%s</td>" % (val)
+                                    newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
+                                    if item[0] not in addedkeys:
+                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                c += 1
+                        newtablehtmlbody += "</tr>"
+                    rowc += 1
 
-            c = 1
-            newtablehtmlheader += "</tr></thead>"
-            newtablehtmlbody += "</tbody>"
-            newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
-            tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable,popupdata)
+                c = 1
+                newtablehtmlheader += "</tr></thead>"
+                newtablehtmlbody += "</tbody>"
+                newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
+                tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable,popupdata)
+            except:
+                print(traceback.format_exc())
         thread = threading.Thread(target = annotatefunc, args = [records,stamp])
         thread.start()
         print("time passed:",time.time()-start)
