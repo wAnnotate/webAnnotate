@@ -1,10 +1,12 @@
-from flask import Flask, flash, request, jsonify, render_template, Response, redirect, send_from_directory, session, copy_current_request_context
+from flask import Flask, request, render_template, Response, redirect, send_from_directory, session, \
+    copy_current_request_context
 import vcf
-import base64
+# import base64
 from io import BufferedReader, TextIOWrapper
-import bs4
+# import bs4
 import requests
-from pyensembl import EnsemblRelease
+# from pyensembl import EnsemblRelease
+from ensembl import getGenesFromLocation, getGeneFromGeneId
 from biothings_client import get_client
 import json
 import os
@@ -30,7 +32,7 @@ dbName = {
     "75": "GRCh37",
     "102": "GRCh38"
 }
-data = EnsemblRelease(102)
+# data = EnsemblRelease(102)
 SESSION_TYPE = 'filesystem'
 gene_client = get_client('gene')
 variant_client = get_client('variant')
@@ -43,27 +45,25 @@ biothingsAssembly = "hg19"
 tempSession = {}
 
 
-
 @app.route("/")
 def index():
-
     if "stamp" in session:
-        print(time.time()-session["stamp"])
+        print(time.time() - session["stamp"])
 
-    if "done" in session or ("stamp" in session and str(session["stamp"])+"done" in tempSession):
+    if "done" in session or ("stamp" in session and str(session["stamp"]) + "done" in tempSession):
         if "done" in session:
             del session["done"]
         if "stamp" in session:
             if session["stamp"] in tempSession:
                 del tempSession[session["stamp"]]
-            if str(session["stamp"])+"done" in tempSession:
-                del tempSession[str(session["stamp"])+"done"]
+            if str(session["stamp"]) + "done" in tempSession:
+                del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time()-session["stamp"] > 1000:
+    if "stamp" in session and time.time() - session["stamp"] > 1000:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
-        if str(session["stamp"])+"done" in tempSession:
-            del tempSession[str(session["stamp"])+"done"]
+        if str(session["stamp"]) + "done" in tempSession:
+            del tempSession[str(session["stamp"]) + "done"]
         del session["stamp"]
     return render_template("index.html")
 
@@ -78,7 +78,7 @@ def getGeneInfo(gene_id, table):
         table["entrezgene"] = ("No data avaliable")
     else:
         table["entrezgene"] = ('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
-                                   % (geneData["entrezgene"], geneData["entrezgene"]))
+                               % (geneData["entrezgene"], geneData["entrezgene"]))
     clinical_data = "no data"
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
@@ -90,6 +90,7 @@ def getGeneInfo(gene_id, table):
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
                                                                  key["mondo"], key["online_report"], key["sop"]))
     table["clingen"] = (clinical_data)
+
 
 @app.route("/static/images/logom.png")
 def logo():
@@ -187,15 +188,15 @@ def prevAnnotated():
                     <input type="checkbox" id="Cadd" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                    General
                 </label>
-                ''' 
+                '''
         newtablehtml = ""
         newtablehtmlheader = """<thead><tr>"""
         newtablehtmlheader += "<th>Row Index</th>"
         keys = {
-            "Civic":{},
-            "Cosmic":{},
-            "Cadd":{},
-            "General":{}
+            "Civic": {},
+            "Cosmic": {},
+            "Cadd": {},
+            "General": {}
         }
         newtablehtmlbody = "<tbody>"
         c = 0
@@ -219,22 +220,22 @@ def prevAnnotated():
                         if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
                             newtablehtmlbody += "<td>%s</td>" % (
                                 getInnerAndHeaderHtmls(val,
-                                "%s-%s-%s" % (item[0],rowc,c),
-                                popupdata))
+                                                       "%s-%s-%s" % (item[0], rowc, c),
+                                                       popupdata))
                             newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
                             if item[0] not in addedkeys:
-                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], item[0], keyc)
                         elif type(val) == dict:
                             for key in val:
                                 newtablehtmlbody += "<td>%s</td>" % (val[key])
                                 newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
                                 if key not in addedkeys:
-                                    keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                                    keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], key, keyc, True)
                         else:
                             newtablehtmlbody += "<td>%s</td>" % (val)
                             newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
                             if item[0] not in addedkeys:
-                                keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], item[0], keyc)
 
                         c += 1
                 newtablehtmlbody += "</tr>"
@@ -243,12 +244,14 @@ def prevAnnotated():
         c = 1
         newtablehtmlheader += "</tr></thead>"
         newtablehtmlbody += "</tbody>"
-        newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
-        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+        newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (
+        newtablehtmlheader, newtablehtmlbody)
+        return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
+                               allData=nnewtable, popupdata=popupdata)
     return redirect("/")
 
 
-def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
+"""def getGenesFromLocation(chr, pos):  # Gets location of gene, returns a Gene object (v102, v75, v54)
     global data
     gene = data.genes_at_locus(contig=chr, position=pos)
     if not gene:
@@ -263,10 +266,10 @@ def getGeneFromLocation(chr, pos):  # Gets location of gene, returns a Gene obje
             break
     if not gene:
         return Exception("Gene not found.")
-    return gene
+    return gene"""
 
 
-def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
+"""def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
     global data
     gene = data.gene_by_id(gId)
     if not gene:
@@ -280,7 +283,7 @@ def getGeneFromGeneId(gId):  # Gets Ensembl id, returns a Gene object
             break
     if not gene:
         return Exception("Gene not found.")
-    return gene
+    return gene"""
 
 
 def getGeneFromRsId(rsId):  # Gets rsId, returns gene object
@@ -323,6 +326,7 @@ def getVariantsData():
         return Response(response=session["table"]["listofvariantscivic"][gene][variant])
     return Response(response=session["table"]["listofvariantscosmic"][gene][variant])
 
+
 @app.route("/annotate/<rowid>", methods=["GET"])
 def expression(rowid):
     rowid = str(rowid)
@@ -360,12 +364,13 @@ def processVariantData(variant, count, hgsvs, index):
         variantdata = '<option value="%s-%s-%s">%s</option>' % (index, count, "biothings", variant["_id"])
         observed = "observed" if variant["observed"] else "not observed"
         varDict = {
-            "header":"Biothings: " + str(variant["_id"] + " (" + observed + ")")
+            "header": "Biothings: " + str(variant["_id"] + " (" + observed + ")")
         }
         for key in variant:
-            if variant[key] and key not in ["_id","_version","chrom","hg19","observed"]:
+            if variant[key] and key not in ["_id", "_version", "chrom", "hg19", "observed"]:
                 if type(variant[key]) != dict or all(isinstance(x, float) for x in list(variant[key].values())):
-                    if len(list(variant[key].values())) > 2 and all(isinstance(x, float) for x in list(variant[key].values())):
+                    if len(list(variant[key].values())) > 2 and all(
+                            isinstance(x, float) for x in list(variant[key].values())):
                         variant[key]["graph"] = """
                                                     <button onclick="showGraph('%s',this)">Show Graph</button>
                                                 """ % (key)
@@ -373,12 +378,13 @@ def processVariantData(variant, count, hgsvs, index):
                 elif type(variant[key]) == dict:
                     varDict[key] = {}
                     for key2 in variant[key]:
-                        if type(variant[key][key2]) == dict and all(isinstance(x, float) for x in list(variant[key][key2].values())):
+                        if type(variant[key][key2]) == dict and all(
+                                isinstance(x, float) for x in list(variant[key][key2].values())):
                             variant[key][key2]["graph"] = """
                                                     <button onclick="showGraph('%s---%s',this)">Show Graph</button>
-                                                """ % (key2,key)
-                        varDict[key][key2] = json2html.convert(json=variant[key][key2],escape = False)
-                        varDict[key][key2] += "<div id='chart%s---%s'></div>" % (key2,key)
+                                                """ % (key2, key)
+                        varDict[key][key2] = json2html.convert(json=variant[key][key2], escape=False)
+                        varDict[key][key2] += "<div id='chart%s---%s'></div>" % (key2, key)
         return json.dumps(varDict), variantdata
     return None, None
 
@@ -401,6 +407,7 @@ def getVariantData(id, assembly, index, count, hgsvs, variantdata):
                 count += 1
     return count, variantdata
 
+
 def formatListOfLists(listofdicts):
     for dictionary in listofdicts:
         keys = list(dictionary.keys())
@@ -409,7 +416,8 @@ def formatListOfLists(listofdicts):
                 del dictionary[key]
     return listofdicts
 
-def formatDataForKeys(data,mainkeys,dictDescFunc):
+
+def formatDataForKeys(data, mainkeys, dictDescFunc):
     for cs in data:
         keys = list(cs.keys())
         for key in keys:
@@ -421,29 +429,29 @@ def formatDataForKeys(data,mainkeys,dictDescFunc):
                 del cs[key]
 
 
-def processVCFRecord(record, index, nnewtable,value):
-    print("new record",value.value)
+def processVCFRecord(record, index, nnewtable, value):
+    print("new record", value.value)
     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
     foundGene = False
     gene_dict = {}
     main_sub_dict = {
-        index:{
-            "Civic":[],
-            "Cosmic":[],
-            "Cadd":[],
-            "General":[{
-                "Summary":"No data available",
-                "entrezgene":"No data available",
-                "contig":"No data available",
-                "strand":"No data available",
-                "start":"No data available",
-                "end":"No data available",
-                "genome":"No data available",
-                "biotype":"No data available",
-                "gene_id":"No data available",
-                "gene_name":"No data available",
-                "Expression":"No data available",
-                "clingen":"No data available"
+        index: {
+            "Civic": [],
+            "Cosmic": [],
+            "Cadd": [],
+            "General": [{
+                "Summary": "No data available",
+                "entrezgene": "No data available",
+                "contig": "No data available",
+                "strand": "No data available",
+                "start": "No data available",
+                "end": "No data available",
+                "genome": "No data available",
+                "biotype": "No data available",
+                "gene_id": "No data available",
+                "gene_name": "No data available",
+                "Expression": "No data available",
+                "clingen": "No data available"
             }],
         }
     }
@@ -454,7 +462,7 @@ def processVCFRecord(record, index, nnewtable,value):
     for key in dictKeys.cosmicCMC:
         cosmic_CMC_template[dictKeys.cosmicDesc(key)] = "No data available"
 
-    if record.ID:  # RsId exists
+    if record.ID and "rs" in record.ID:  # RsId exists
         # print("rsid exists")
         try:
             gene, variant = getGeneFromRsId(record.ID)
@@ -463,8 +471,8 @@ def processVCFRecord(record, index, nnewtable,value):
             getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
             for key in gene_dict.keys():
                 if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic","db"]:
+                               "variants", "listofvariants",
+                               "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
             main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
@@ -474,18 +482,18 @@ def processVCFRecord(record, index, nnewtable,value):
     if not foundGene:
         # if not record.ID: print("rsid does not exist")
         try:
-            gene = getGeneFromLocation(record.CHROM, record.POS)
+            gene = getGenesFromLocation(record.CHROM, record.POS, session["dbChoice"])
             gene_dict = gene[0].__dict__
             foundGene = True
             getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
             for key in gene_dict.keys():
                 if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                                       "variants", "listofvariants",
-                                                       "variantdata", " ", "listofvariantscivic","listofvariantscosmic","db"]:
+                               "variants", "listofvariants",
+                               "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
             main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
         except Exception as e:
-            print("getGeneFromLocation: ", e)
+            print("getGenesFromLocation: ", e)
             foundGene = False
     try:
         count = 0
@@ -504,13 +512,13 @@ def processVCFRecord(record, index, nnewtable,value):
         if record.ALT:
             for i in record.ALT:
                 if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                    cadd_data = cadd.getSNV("GRCh37",mappedChr,mappedPos,record.REF,str(i))
+                    cadd_data = cadd.getSNV("GRCh37", mappedChr, mappedPos, record.REF, str(i))
                     if cadd_data and type(cadd_data) == list:
                         for d in cadd_data:
                             cadd_dict = {}
                             for key in cadd.keys:
                                 if key in d:
-                                    cadd_dict[key.replace("-"," ").replace("_"," ")] = d[key]
+                                    cadd_dict[key.replace("-", " ").replace("_", " ")] = d[key]
                                 else:
                                     cadd_dict[key] = "No data available"
                             main_sub_dict[index]["Cadd"].append(cadd_dict)
@@ -533,23 +541,24 @@ def processVCFRecord(record, index, nnewtable,value):
     except:
         print(traceback.format_exc())
     try:
-        
-        print("civic inner",record.ALT)
+
+        print("civic inner", record.ALT)
         if record.ALT:
             for i in record.ALT:
-                civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos,str(record.REF),str(i)).copy()
+                civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos, str(record.REF), str(i)).copy()
                 if civicdata:
                     count = 0
                     for var in civicdata:
                         variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
                         assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
-                        clinical_significances = formatListOfLists(civic.findClinicalEvidences(var["variant_id"])).copy()
-                        civicdatagene = civic.findGeneFromLocation(mappedChr,mappedPos).copy()
+                        clinical_significances = formatListOfLists(
+                            civic.findClinicalEvidences(var["variant_id"])).copy()
+                        civicdatagene = civic.findGeneFromLocation(mappedChr, mappedPos).copy()
                         civicdatagene = formatListOfLists([civicdatagene])
-                        formatDataForKeys(clinical_significances,dictKeys.civicClinicalEvidences,dictKeys.civicDesc)
-                        formatDataForKeys(assertions,dictKeys.civicAssertions,dictKeys.civicDesc)
-                        formatDataForKeys(variant_groups,dictKeys.civicVariantGroups,dictKeys.civicDesc)
-                        formatDataForKeys(civicdatagene,dictKeys.civicGenes,dictKeys.civicDesc)
+                        formatDataForKeys(clinical_significances, dictKeys.civicClinicalEvidences, dictKeys.civicDesc)
+                        formatDataForKeys(assertions, dictKeys.civicAssertions, dictKeys.civicDesc)
+                        formatDataForKeys(variant_groups, dictKeys.civicVariantGroups, dictKeys.civicDesc)
+                        formatDataForKeys(civicdatagene, dictKeys.civicGenes, dictKeys.civicDesc)
                         genehtml = civicdatagene
                         keys = list(var.keys())
                         for key in keys:
@@ -558,7 +567,7 @@ def processVCFRecord(record, index, nnewtable,value):
                             if key not in dictKeys.civicVariants:
                                 del var[key]
                                 continue
-                            
+
                             data = var[key]
                             var[dictKeys.civicDesc(key)] = data
                             del var[key]
@@ -568,11 +577,11 @@ def processVCFRecord(record, index, nnewtable,value):
                         var = temp.copy()
                         html = var
                         CivicDict = {
-                            "Variants":html if html else civic_variants_template,
-                            "Variant Groups":variant_groups if variant_groups else "No data available",
-                            "Genes":genehtml if genehtml else "No data avaliable",
-                            "Assertions":assertions if assertions else "No data available",
-                            "Clinical Evidences":clinical_significances if clinical_significances else "No data available",
+                            "Variants": html if html else civic_variants_template,
+                            "Variant Groups": variant_groups if variant_groups else "No data available",
+                            "Genes": genehtml if genehtml else "No data avaliable",
+                            "Assertions": assertions if assertions else "No data available",
+                            "Clinical Evidences": clinical_significances if clinical_significances else "No data available",
                         }
                         main_sub_dict[index]["Civic"].append(CivicDict)
                         count += 1
@@ -580,10 +589,10 @@ def processVCFRecord(record, index, nnewtable,value):
                     main_sub_dict[index]["Civic"].append(
                         {
                             "Variants": civic_variants_template,
-                            "Variant Groups":"No data available",
-                            "Genes":"No data available",
-                            "Assertions":"No data available",
-                            "Clinical Evidences":"No data available",
+                            "Variant Groups": "No data available",
+                            "Genes": "No data available",
+                            "Assertions": "No data available",
+                            "Clinical Evidences": "No data available",
                         }
                     )
     except:
@@ -591,10 +600,11 @@ def processVCFRecord(record, index, nnewtable,value):
     try:
         if record.ALT:
             for i in record.ALT:
-                cosmicdata = cosmic.findVariantsFromLocation("GRCh37",mappedChr,mappedPos,str(record.REF),str(i))
+                cosmicdata = cosmic.findVariantsFromLocation("GRCh37", mappedChr, mappedPos, str(record.REF), str(i))
                 if not cosmicdata:
-                    mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM, record.POS)
-                    cosmicdata = cosmic.findVariantsFromLocation("GRCh38",mappedChr,mappedPos)
+                    mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM,
+                                                         record.POS)
+                    cosmicdata = cosmic.findVariantsFromLocation("GRCh38", mappedChr, mappedPos)
                 if cosmicdata:
                     count = 0
                     for row in cosmicdata:
@@ -624,19 +634,19 @@ def processVCFRecord(record, index, nnewtable,value):
                             else:
                                 temp[key] = "No data available"
                         row = temp
-                        variantData = json2html.convert(json = row, escape=False)
+                        variantData = json2html.convert(json=row, escape=False)
                         variantData = row
                         CosmicDict = {
-                            "CMC":variantData if variantData else cosmic_CMC_template,
-                            "Resistance Mutations":resistanceMutations if resistanceMutations else "No data available"
+                            "CMC": variantData if variantData else cosmic_CMC_template,
+                            "Resistance Mutations": resistanceMutations if resistanceMutations else "No data available"
                         }
                         main_sub_dict[index]["Cosmic"].append(CosmicDict)
                         count += 1
                 else:
                     main_sub_dict[index]["Cosmic"].append(
                         {
-                            "CMC":cosmic_CMC_template,
-                            "Resistance Mutations":"No data available"
+                            "CMC": cosmic_CMC_template,
+                            "Resistance Mutations": "No data available"
                         }
                     )
     except Exception as exp:
@@ -645,16 +655,16 @@ def processVCFRecord(record, index, nnewtable,value):
     try:
         print("-------")
         greatest_len = 0
-        for key in ["Cosmic","Civic","Cadd","General"]:
+        for key in ["Cosmic", "Civic", "Cadd", "General"]:
             if len(main_sub_dict[index][key]) > greatest_len:
                 greatest_len = len(main_sub_dict[index][key])
-        for key in ["Cosmic","Civic","Cadd","General"]:
+        for key in ["Cosmic", "Civic", "Cadd", "General"]:
             while greatest_len > len(main_sub_dict[index][key]):
                 if key == "Cosmic":
                     main_sub_dict[index][key].append(
                         {
-                            "CMC":cosmic_CMC_template,
-                            "Resistance Mutations":"No data available"
+                            "CMC": cosmic_CMC_template,
+                            "Resistance Mutations": "No data available"
                         }
                     )
                 elif key == "Cadd":
@@ -666,10 +676,10 @@ def processVCFRecord(record, index, nnewtable,value):
                     main_sub_dict[index][key].append(
                         {
                             "Variants": civic_variants_template,
-                            "Variant Groups":"No data available",
-                            "Genes":"No data available",
-                            "Assertions":"No data available",
-                            "Clinical Evidences":"No data available",
+                            "Variant Groups": "No data available",
+                            "Genes": "No data available",
+                            "Assertions": "No data available",
+                            "Clinical Evidences": "No data available",
                         }
                     )
                 else:
@@ -679,55 +689,61 @@ def processVCFRecord(record, index, nnewtable,value):
 
     if greatest_len > 0:
         nnewtable[str(index)] = {
-            "Civic":main_sub_dict[index]["Civic"],
-            "Cosmic":main_sub_dict[index]["Cosmic"],
-            "Cadd":main_sub_dict[index]["Cadd"],
+            "Civic": main_sub_dict[index]["Civic"],
+            "Cosmic": main_sub_dict[index]["Cosmic"],
+            "Cadd": main_sub_dict[index]["Cadd"],
             "General": main_sub_dict[index]["General"]
         }
     value.value = value.value + 1
 
 
 @app.route("/showresult", methods=["GET"])
-def showresult():   
+def showresult():
     global tempSession
     if "stamp" in session and session["stamp"] in tempSession:
         try:
-            (newtablehtml, mainKeys, keys, nnewtable,popupdata) = tempSession[session["stamp"]]
+            (newtablehtml, mainKeys, keys, nnewtable, popupdata) = tempSession[session["stamp"]]
             session["result"] = tempSession[session["stamp"]]
             session["table"] = nnewtable.copy()
-            return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+            return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
+                                   allData=nnewtable, popupdata=popupdata)
         except:
             if "result" in session:
-                (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
-                return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+                (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
+                return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys,
+                                       subkeys=json.dumps(keys), allData=nnewtable, popupdata=popupdata)
             else:
                 print("exception")
                 return redirect("/annotate")
 
 
     elif "result" in session:
-        (newtablehtml, mainKeys, keys, nnewtable,popupdata) = session["result"]
-        return render_template("annotated.html", table=newtablehtml, mainKeys = mainKeys, subkeys = json.dumps(keys), allData = nnewtable,popupdata = popupdata)
+        (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
+        return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
+                               allData=nnewtable, popupdata=popupdata)
     print("lastresult")
     return redirect("/annotate")
 
-@app.route("/isresult", methods = ['GET'])
+
+@app.route("/isresult", methods=['GET'])
 def isresult():
     print(session.keys())
     progress = 0
     try:
         if "stamp" in session and session["stamp"] in tempSession:
             session["done"] = "done"
-            return Response(response=json.dumps({"status":1}))
+            return Response(response=json.dumps({"status": 1}))
     except:
         if "table" in session:
-            return Response(response=json.dumps({"status":1}))
+            return Response(response=json.dumps({"status": 1}))
     if "stamp" in session:
-        if str(session["stamp"])+"progress" in tempSession and str(session["stamp"])+"count" in tempSession:
-            progress = tempSession[str(session["stamp"])+"progress"].value/tempSession[str(session["stamp"])+"count"]*100
-    return Response(response=json.dumps({"status":0,"progress":progress}))
+        if str(session["stamp"]) + "progress" in tempSession and str(session["stamp"]) + "count" in tempSession:
+            progress = tempSession[str(session["stamp"]) + "progress"].value / tempSession[
+                str(session["stamp"]) + "count"] * 100
+    return Response(response=json.dumps({"status": 0, "progress": progress}))
 
-def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
+
+def addHeaderKeys(addedkeys, civickeys, itemkey, key, keycount, isdict=False):
     addedkeys.append(key)
     if isdict:
         if itemkey not in civickeys:
@@ -737,23 +753,24 @@ def addHeaderKeys(addedkeys,civickeys,itemkey,key,keycount,isdict=False):
         civickeys[itemkey] = keycount
     return keycount + 1
 
-def getInnerAndHeaderHtmls(elements,key,popupdata):
+
+def getInnerAndHeaderHtmls(elements, key, popupdata):
     innerhtml = "<option value="" selected>""</option>"
     for element in elements:
         innerhtml += """
                         <option value="%s-%s">%s</option>
-                     """ % (key,list(element.values())[0],list(element.values())[0])
-        popupdata[key+"-"+list(element.values())[0]] = json2html.convert(json = element)
+                     """ % (key, list(element.values())[0], list(element.values())[0])
+        popupdata[key + "-" + list(element.values())[0]] = json2html.convert(json=element)
     innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
                       """ % (innerhtml)
     return innerhtmlselect
 
-@app.route("/haveaprocess", methods = ["GET"])
+
+@app.route("/haveaprocess", methods=["GET"])
 def haveaprocess():
     if "stamp" in session:
-        return Response(response=json.dumps({"status":1}))
-    return Response(response=json.dumps({"status":0}))
-    
+        return Response(response=json.dumps({"status": 1}))
+    return Response(response=json.dumps({"status": 0}))
 
 
 @app.route("/annotate", methods=["POST"])
@@ -777,22 +794,23 @@ def annotate():
         session["dbChoice"] = int(request.form["db"])
         print("DB choice:", session["dbChoice"])
         global data
-        data = EnsemblRelease(session["dbChoice"])
+        # data = EnsemblRelease(session["dbChoice"])
         records = []
         file = request.files["efile"]
         file.name = file.filename
         file = BufferedReader(file)
         file = TextIOWrapper(file)
-        tempSession[str(stamp)+"progress"] = 0
+        tempSession[str(stamp) + "progress"] = 0
         vcf_reader = vcf.Reader(file)
         count = 0
         for record in vcf_reader:
             records.append(record)
             count += 1
-        tempSession[str(stamp)+"count"] = count
+        tempSession[str(stamp) + "count"] = count
+
         # print(type(file))
         @copy_current_request_context
-        def annotatefunc(records,stamp):
+        def annotatefunc(records, stamp):
             try:
                 global tempSession
                 mainKeys = '''
@@ -812,14 +830,14 @@ def annotate():
                                 <input type="checkbox" id="General" onclick="changeSelectText(this.parentElement)" onchange="resetSubkeys(this.parentElement,this)" />
                                General
                             </label>
-                            ''' 
+                            '''
                 newtable = manager.dict()
-                tempSession[str(stamp)+"progress"] = manager.Value('progress',0) 
+                tempSession[str(stamp) + "progress"] = manager.Value('progress', 0)
                 nnewtable = {}
                 pool = Pool(os.cpu_count())
                 count = 0
                 for record in records:
-                    pool.apply_async(processVCFRecord, (record, count, newtable,tempSession[str(stamp)+"progress"]))
+                    pool.apply_async(processVCFRecord, (record, count, newtable, tempSession[str(stamp) + "progress"]))
                     count += 1
                 pool.close()
                 pool.join()
@@ -834,10 +852,10 @@ def annotate():
                 newtablehtmlheader = """<thead><tr>"""
                 newtablehtmlheader += "<th>Row Index</th>"
                 keys = {
-                    "Civic":{},
-                    "Cosmic":{},
-                    "Cadd":{},
-                    "General":{}
+                    "Civic": {},
+                    "Cosmic": {},
+                    "Cadd": {},
+                    "General": {}
                 }
                 newtablehtmlbody = "<tbody>"
                 c = 0
@@ -860,22 +878,22 @@ def annotate():
                                 if type(val) == list and (type(val[0]) is OrderedDict or type(val[0]) is dict):
                                     newtablehtmlbody += "<td>%s</td>" % (
                                         getInnerAndHeaderHtmls(val,
-                                        "%s-%s-%s" % (item[0],rowc,c),
-                                        popupdata))
+                                                               "%s-%s-%s" % (item[0], rowc, c),
+                                                               popupdata))
                                     newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
                                     if item[0] not in addedkeys:
-                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                        keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], item[0], keyc)
                                 elif type(val) == dict:
                                     for key in val:
                                         newtablehtmlbody += "<td>%s</td>" % (val[key])
                                         newtablehtmlheader += "<th>%s</th>" % key if key not in addedkeys else ""
                                         if key not in addedkeys:
-                                            keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],key,keyc,True)
+                                            keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], key, keyc, True)
                                 else:
                                     newtablehtmlbody += "<td>%s</td>" % (val)
                                     newtablehtmlheader += "<th>%s</th>" % item[0] if item[0] not in addedkeys else ""
                                     if item[0] not in addedkeys:
-                                        keyc = addHeaderKeys(addedkeys,keys[mainKey],item[0],item[0],keyc)
+                                        keyc = addHeaderKeys(addedkeys, keys[mainKey], item[0], item[0], keyc)
                                 c += 1
                         newtablehtmlbody += "</tr>"
                     rowc += 1
@@ -883,15 +901,17 @@ def annotate():
                 c = 1
                 newtablehtmlheader += "</tr></thead>"
                 newtablehtmlbody += "</tbody>"
-                newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (newtablehtmlheader,newtablehtmlbody)
-                tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable,popupdata)
-                tempSession[str(stamp)+"done"] = "done"
+                newtablehtml = """<table id = "table" class="table table-bordered">%s%s</table>""" % (
+                newtablehtmlheader, newtablehtmlbody)
+                tempSession[stamp] = (newtablehtml, mainKeys, keys, nnewtable, popupdata)
+                tempSession[str(stamp) + "done"] = "done"
             except:
                 print(traceback.format_exc())
-        thread = threading.Thread(target = annotatefunc, args = [records,stamp])
+
+        thread = threading.Thread(target=annotatefunc, args=[records, stamp])
         thread.start()
-        print("time passed:",time.time()-start)
-        return Response(response=json.dumps({"status":1}))
+        print("time passed:", time.time() - start)
+        return Response(response=json.dumps({"status": 1}))
     except:
         if "stamp" in session:
             if session["stamp"] in tempSession:
@@ -904,7 +924,7 @@ def annotate():
             print("result deleted")
             del session["result"]
         print(traceback.format_exc())
-        return Response(response=json.dumps({"status":0}))
+        return Response(response=json.dumps({"status": 0}))
 
 
 if __name__ == "__main__":

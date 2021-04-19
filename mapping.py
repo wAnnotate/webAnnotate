@@ -1,5 +1,4 @@
 import requests
-import sys
 
 server = "http://rest.ensembl.org"
 
@@ -13,8 +12,7 @@ def remap(asm_from, asm_to, chromosome, location):  # Remaps from one assembly t
     r = requests.get(server + ext, headers={"Content-Type": "application/json"})
 
     if not r.ok:
-        r.raise_for_status()
-        sys.exit()
+        return None, None
 
     decoded = r.json()
     # print("org:", decoded["mappings"][0]["original"])
