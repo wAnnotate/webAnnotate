@@ -479,7 +479,7 @@ def processVCFRecord(record, index, nnewtable, value):
             foundGene = True
             getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
             for key in gene_dict.keys():
-                if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                if key in list(main_sub_dict[index]["General"][0].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                "variants", "listofvariants",
                                "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
@@ -496,7 +496,7 @@ def processVCFRecord(record, index, nnewtable, value):
             foundGene = True
             getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
             for key in gene_dict.keys():
-                if key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                if key in list(main_sub_dict[index]["General"][0].keys()) and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
                                "variants", "listofvariants",
                                "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
                     main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
@@ -740,6 +740,7 @@ def isresult():
     progress = 0
     try:
         if "stamp" in session and session["stamp"] in tempSession:
+            session["result"] = tempSession[session["stamp"]]
             session["done"] = "done"
             return Response(response=json.dumps({"status": 1}))
     except:
