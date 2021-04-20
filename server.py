@@ -796,10 +796,13 @@ def addHeaderKeys(addedkeys, civickeys, itemkey, key, keycount, isdict=False):
 def getInnerAndHeaderHtmls(elements, key, popupdata):
     innerhtml = "<option value="" selected>""</option>"
     for element in elements:
+        header = list(element.values())[0]
+        if "CIViC: Disease" in element:
+            header = element["CIViC: Disease"]
         innerhtml += """
                         <option value="%s-%s">%s</option>
-                     """ % (key, list(element.values())[0], list(element.values())[0])
-        popupdata[key + "-" + list(element.values())[0]] = json2html.convert(json=element)
+                     """ % (key, header, header)
+        popupdata[key + "-" + header] = json2html.convert(json=element)
     innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
                       """ % (innerhtml)
     return innerhtmlselect
