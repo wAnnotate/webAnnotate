@@ -451,7 +451,16 @@ def processVCFRecord(record, index, nnewtable, value):
                 "gene_id": "No data available",
                 "gene_name": "No data available",
                 "Expression": "No data available",
-                "clingen": "No data available"
+                "clingen": "No data available",
+                "source":"No data available",
+                "id":"No data available",
+                "assembly_name":"No data available",
+                "description":"No data available",
+                "version":"No data available",
+                "seq_region_name":"No data available",
+                "feature_type":"No data available",
+                "external_name":"No data available",
+                "logic_name":"No data available"
             }],
         }
     }
