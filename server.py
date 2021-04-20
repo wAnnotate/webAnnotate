@@ -719,6 +719,7 @@ def showresult():
         except:
             if "result" in session:
                 (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
+                session["table"] = nnewtable.copy()
                 return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys,
                                        subkeys=json.dumps(keys), allData=nnewtable, popupdata=popupdata)
             else:
@@ -728,6 +729,7 @@ def showresult():
 
     elif "result" in session:
         (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
+        session["table"] = nnewtable.copy()
         return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
                                allData=nnewtable, popupdata=popupdata)
     print("lastresult")
