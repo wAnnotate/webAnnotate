@@ -13,7 +13,17 @@
     "Cadd-SIFTcat","Cadd-SIFTval","Cadd-PolyPhenCat","Cadd-PolyPhenVal","Cadd-GerpRS","Cadd-PHRED"
     ]
     var popupdata = {{popupdata|tojson}};
-
+    function downloadObjectAsJson(){
+        let exportObj = allData;
+        let exportName = new Date().getTime();
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        var downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href",     dataStr);
+        downloadAnchorNode.setAttribute("download", exportName + ".json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
     var maintable = null;
     function showCheckboxes(select) {
         var checkboxes = select.nextElementSibling;
@@ -206,6 +216,21 @@
              },
 			 responsive: true,
              initComplete: function () {
+                defaults.forEach(defaultt => {
+                    let parts = defaultt.split("-");
+                    let found = null;
+                    console.warn(parts);
+                    parts.forEach(part => {
+                        if(!found)
+                            found = subkeys[part];
+                        else if(part in found)
+                            found = found[part];
+                    });
+                    console.log(found);
+                    if(found)
+                    this.api().columns([found]).visible(true);
+                    this.api().columns([0]).visible(true);
+                });
                  this
                     .api().order( [ 1, 'asc' ] )
                     .draw();
@@ -268,20 +293,6 @@
                 document.body.style.zoom = "100%";
             }
         }
-        defaults.forEach(defaultt => {
-            let parts = defaultt.split("-");
-            let found = null;
-            parts.forEach(part => {
-                if(!found)
-                    found = subkeys[part];
-                else
-                    found = found[part];
-            });
-            console.log(found);
-            if(found)
-                maintable.api().columns([found]).visible(true);
-            maintable.api().columns([0]).visible(true);
-        });
     })
     function toggleModal(select){
         let header = select.value.split("-").pop();
@@ -341,6 +352,7 @@
         </div>
     </div>
 </div>
+<button class="btn btn-outline-primary" onclick="downloadObjectAsJson()">To Json</button>
         <table class="table table-bordered">
             <thead>
                 <tr>
