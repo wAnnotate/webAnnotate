@@ -110,6 +110,15 @@ def constructannotation():
     #file = BufferedReader(file)
     #file = TextIOWrapper(file)
     nnewtable = json.load(file)
+    temp = {}
+    keys = ["Civic","Cosmic","Cadd","General"]
+    for key in nnewtable:
+        temp[key] = {}
+        for key2 in keys:
+            temp[key][key2] = []
+            for element in nnewtable[key][key2]:
+                temp[key][key2].append(element)
+    nnewtable = temp.copy()        
     print(nnewtable)
     session["table"] = nnewtable.copy()
     mainKeys = '''
@@ -132,13 +141,14 @@ def constructannotation():
                 '''
     newtablehtml = ""
     newtablehtmlheader = """<thead><tr>"""
+    newtablehtmlheader += "<th></th>"
     newtablehtmlheader += "<th>Row Index</th>"
     keys = {}
     for key in list(list(nnewtable.values())[0].keys()):
         keys[key] = {}
     newtablehtmlbody = "<tbody>"
     c = 0
-    keyc = 1
+    keyc = 2
     rowc = 0
     addedkeys = []
     popupdata = {}
@@ -146,11 +156,11 @@ def constructannotation():
         lenn = len(list(item1[1].items()))
         print(lenn)
         for subitem in zip(*item1[1].values()):
-            newtablehtmlbody += """<tr><td>%s
+            newtablehtmlbody += """<tr><td>
                 <br>
                 <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
                 +
-                </button></td>""" % item1[0]
+                </button></td><td>%s</td>""" % item1[0]
             for i in range(lenn):
                 mainKey = list(keys.keys())[i]
                 for item in list(subitem[i].items()):
@@ -210,13 +220,14 @@ def prevAnnotated():
                 '''
         newtablehtml = ""
         newtablehtmlheader = """<thead><tr>"""
+        newtablehtmlheader += "<th></th>"
         newtablehtmlheader += "<th>Row Index</th>"
         keys = {}
         for key in list(list(nnewtable.values())[0].keys()):
             keys[key] = {}
         newtablehtmlbody = "<tbody>"
         c = 0
-        keyc = 1
+        keyc = 2
         rowc = 0
         addedkeys = []
         popupdata = {}
@@ -224,11 +235,11 @@ def prevAnnotated():
             lenn = len(list(item1[1].items()))
             print(lenn)
             for subitem in zip(*item1[1].values()):
-                newtablehtmlbody += """<tr><td>%s
+                newtablehtmlbody += """<tr><td>
                     <br>
                     <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
                     +
-                    </button></td>""" % item1[0]
+                    </button></td><td>%s</td>""" % item1[0]
                 for i in range(lenn):
                     mainKey = list(keys.keys())[i]
                     for item in list(subitem[i].items()):
@@ -878,6 +889,7 @@ def annotate():
                 session["table"] = nnewtable.copy()
                 newtablehtml = ""
                 newtablehtmlheader = """<thead><tr>"""
+                newtablehtmlheader += "<th></th>"
                 newtablehtmlheader += "<th>Row Index</th>"
                 keys = {
                     "Civic": {},
@@ -887,18 +899,18 @@ def annotate():
                 }
                 newtablehtmlbody = "<tbody>"
                 c = 0
-                keyc = 1
+                keyc = 2
                 rowc = 0
                 addedkeys = []
                 popupdata = {}
                 for item1 in list(nnewtable.items()):
                     lenn = len(list(item1[1].items()))
                     for subitem in zip(*item1[1].values()):
-                        newtablehtmlbody += """<tr><td>%s
+                        newtablehtmlbody += """<tr><td>
                             <br>
                             <button onclick="toggle(this)" style="color:white;font-size:20px;" name="+" class="btn btn-success btn-lg">
                             +
-                            </button></td>""" % item1[0]
+                            </button></td><td>%s</td>""" % item1[0]
                         for i in range(lenn):
                             mainKey = list(keys.keys())[i]
                             for item in list(subitem[i].items()):

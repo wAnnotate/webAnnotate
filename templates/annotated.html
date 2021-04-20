@@ -172,21 +172,21 @@
             {
                 extend: 'csv',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7]
+                    columns: [...Array(44).keys()]
                 }
             },
             
             {
                 extend: 'excel',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7]
+                    columns: [...Array(44).keys()]
                 }
             },
             
             {
                 extend: 'print',
                 exportOptions: {
-                    columns: [ 1, 2, 3, 4,5,6,7]
+                    columns:[...Array(44).keys()]
                 }
             }
             ],
@@ -230,6 +230,7 @@
                     if(found)
                     this.api().columns([found]).visible(true);
                     this.api().columns([0]).visible(true);
+                    this.api().columns([1]).visible(true);
                 });
                  this
                     .api().order( [ 1, 'asc' ] )
@@ -237,6 +238,9 @@
                  [...document.getElementsByTagName("button")]
                     .filter(b => b.getAttribute("name") != "+")
                     .forEach(b => b.className += " btn btn-outline-primary");
+                 document.getElementsByClassName("dt-buttons")[0].insertAdjacentHTML("beforeend",`
+                        <button class="btn btn-outline-primary" onclick="downloadObjectAsJson()">JSON</button>
+                 `)
                  let count = 0;
                  let cols = [4,5,6];
                  /* 
@@ -352,7 +356,6 @@
         </div>
     </div>
 </div>
-<button class="btn btn-outline-primary" onclick="downloadObjectAsJson()">To Json</button>
         <table class="table table-bordered">
             <thead>
                 <tr>
