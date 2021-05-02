@@ -59,7 +59,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1000:
+    if "stamp" in session and time.time() - session["stamp"] > 1:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
@@ -111,7 +111,7 @@ def constructannotation():
     #file = TextIOWrapper(file)
     nnewtable = json.load(file)
     temp = {}
-    keys = ["Civic","Cosmic","Cadd","General"]
+    keys = ["General","Civic","Cosmic","Cadd"]
     for key in nnewtable:
         temp[key] = {}
         for key2 in keys:
@@ -463,10 +463,10 @@ def processVCFRecord(record, index, nnewtable, value):
     gene_dict = {}
     main_sub_dict = {
         index: {
+            "General": [],
             "Civic": [],
             "Cosmic": [],
             "Cadd": [],
-            "General": [],
         }
     }
     civic_variants_template = {}
@@ -480,7 +480,7 @@ def processVCFRecord(record, index, nnewtable, value):
         for i in record.ALT:
             if len(str(i)) == 1 and len(str(record.REF)) == 1:
                 main_sub_dict[index]["General"].append({
-                    "Chromosome:":str(record.CHROM),
+                    "Chromosome":str(record.CHROM),
                     "Position":str(record.POS),
                     "Reference Bases":str(record.REF),
                     "Alternative Bases":str(i),
@@ -574,6 +574,8 @@ def processVCFRecord(record, index, nnewtable, value):
                         d = cadd_data[0]
                         cadd_dict = {}
                         for key in cadd.keys:
+                            if d[key] == "NA":
+                                d[key] = ""
                             if key in d:
                                 cadd_dict[key.replace("-", " ").replace("_", " ")] = d[key]
                             else:
@@ -753,7 +755,7 @@ def processVCFRecord(record, index, nnewtable, value):
                     )
                 else:
                     main_sub_dict[index][key].append({
-                    "Chromosome:":str(record.CHROM),
+                    "Chromosome":str(record.CHROM),
                     "Position":str(record.POS),
                     "Reference Bases":str(record.REF),
                     "Alternative Bases":str(record.ALT),
@@ -784,10 +786,10 @@ def processVCFRecord(record, index, nnewtable, value):
 
     if greatest_len > 0:
         nnewtable[str(index)] = {
+            "General": main_sub_dict[index]["General"],
             "Civic": main_sub_dict[index]["Civic"],
             "Cosmic": main_sub_dict[index]["Cosmic"],
             "Cadd": main_sub_dict[index]["Cadd"],
-            "General": main_sub_dict[index]["General"]
         }
     value.value = value.value + 1
 
@@ -954,10 +956,10 @@ def annotate():
                 newtablehtmlheader += "<th></th>"
                 newtablehtmlheader += "<th>Row Index</th>"
                 keys = {
+                    "General": {},
                     "Civic": {},
                     "Cosmic": {},
                     "Cadd": {},
-                    "General": {}
                 }
                 newtablehtmlbody = "<tbody>"
                 c = 0
