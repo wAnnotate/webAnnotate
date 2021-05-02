@@ -71,15 +71,15 @@ def index():
 def getGeneInfo(gene_id, table):
     geneData = gene_client.getgene(gene_id)
     if "Summary" not in geneData:
-        table["Summary"] = ("No data avaliable")
+        table["Summary"] = ("")
     else:
         table["Summary"] = (geneData["Summary"])
     if "entrezgene" not in geneData:
-        table["entrezgene"] = ("No data avaliable")
+        table["entrezgene"] = ("")
     else:
         table["entrezgene"] = ('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                % (geneData["entrezgene"], geneData["entrezgene"]))
-    clinical_data = "no data"
+    clinical_data = ""
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
         clinical_data = ""
         if type(geneData["clingen"]["clinical_validity"]) == dict:
@@ -363,7 +363,7 @@ def expression(rowid):
         gene = session["table"][rowid]["General"][0]["entrezgene"].split("href=\"")[1].split("\"")[0].split("/")[-1]
         if requests.get(
                 "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).status_code == 500:
-            return render_template("visualization.html", table="No data available", dta="[]")
+            return render_template("visualization.html", table="", dta="[]")
         data1 = requests.get(
             "https://www.ncbi.nlm.nih.gov/projects/Gene/download_expression.cgi?PROJECT_DESC=PRJEB4337&GENE=%s" % gene).text
         data1 = data1.split("\n\n\n")[1]
@@ -382,7 +382,7 @@ def expression(rowid):
             tablehtml += "<td>%s</td>" % d
         tablehtml += "</tr><tbody></table>"
         return render_template("visualization.html", table=tablehtml, dta=json.dumps(dta))
-    return render_template("visualization.html", table="No data available", dta="[]")
+    return render_template("visualization.html", table="", dta="[]")
 
 
 def processVariantData(variant, count, hgsvs, index):
@@ -466,51 +466,65 @@ def processVCFRecord(record, index, nnewtable, value):
             "Civic": [],
             "Cosmic": [],
             "Cadd": [],
-            "General": [{
-                "Summary": "No data available",
-                "entrezgene": "No data available",
-                "contig": "No data available",
-                "strand": "No data available",
-                "start": "No data available",
-                "end": "No data available",
-                "genome": "No data available",
-                "biotype": "No data available",
-                "gene_id": "No data available",
-                "gene_name": "No data available",
-                "Expression": "No data available",
-                "clingen": "No data available",
-                "source":"No data available",
-                "id":"No data available",
-                "assembly_name":"No data available",
-                "description":"No data available",
-                "version":"No data available",
-                "seq_region_name":"No data available",
-                "feature_type":"No data available",
-                "external_name":"No data available",
-                "logic_name":"No data available"
-            }],
+            "General": [],
         }
     }
     civic_variants_template = {}
     for key in dictKeys.civicVariants:
-        civic_variants_template[dictKeys.civicDesc(key)] = "No data available"
+        civic_variants_template[dictKeys.civicDesc(key)] = ""
     cosmic_CMC_template = {}
     for key in dictKeys.cosmicCMC:
-        cosmic_CMC_template[dictKeys.cosmicDesc(key)] = "No data available"
+        cosmic_CMC_template[dictKeys.cosmicDesc(key)] = ""
 
+    if record.ALT:
+        for i in record.ALT:
+            if len(str(i)) == 1 and len(str(record.REF)) == 1:
+                main_sub_dict[index]["General"].append({
+                    "Chromosome:":str(record.CHROM),
+                    "Position":str(record.POS),
+                    "Reference Bases":str(record.REF),
+                    "Alternative Bases":str(i),
+                    "Summary": "",
+                    "entrezgene": "",
+                    "contig": "",
+                    "strand": "",
+                    "start": "",
+                    "end": "",
+                    "genome": "",
+                    "biotype": "",
+                    "gene_id": "",
+                    "gene_name": "",
+                    "Expression": "",
+                    "clingen": "",
+                    "source":"",
+                    "id":"",
+                    "assembly_name":"",
+                    "description":"",
+                    "version":"",
+                    "seq_region_name":"",
+                    "feature_type":"",
+                    "external_name":"",
+                    "logic_name":""
+            })
     if record.ID and "rs" in record.ID:  # RsId exists
         # print("rsid exists")
         try:
             gene, variant = getGeneFromRsId(record.ID)
             gene_dict = gene.__dict__
             foundGene = True
-            getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][0])
-            for key in gene_dict.keys():
-                if key in list(main_sub_dict[index]["General"][0].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                               "variants", "listofvariants",
-                               "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
-                    main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
-            main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+            cnt = 0
+            if record.ALT:
+                for i in record.ALT:
+                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
+                        getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][cnt])
+                        for key in gene_dict.keys():
+                            if key in list(main_sub_dict[index]["General"][cnt].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                           "variants", "listofvariants",
+                                           "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
+                                main_sub_dict[index]["General"][cnt][key] = str(gene_dict[key])
+                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+                        cnt += 1
+            print("cnt: ",index,"-",cnt)
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -521,13 +535,19 @@ def processVCFRecord(record, index, nnewtable, value):
             gene = getGenesFromLocation(record.CHROM, record.POS, session["dbChoice"])
             gene_dict = gene[0].__dict__
             foundGene = True
-            getGeneInfo(gene[0].gene_id, main_sub_dict[index]["General"][0])
-            for key in gene_dict.keys():
-                if key in list(main_sub_dict[index]["General"][0].keys()) and key not in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                               "variants", "listofvariants",
-                               "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
-                    main_sub_dict[index]["General"][0][key] = str(gene_dict[key])
-            main_sub_dict[index]["General"][0]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+            cnt = 0
+            if record.ALT:
+                for i in record.ALT:
+                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
+                        getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][cnt])
+                        for key in gene_dict.keys():
+                            if key in list(main_sub_dict[index]["General"][cnt].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
+                                           "variants", "listofvariants",
+                                           "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
+                                main_sub_dict[index]["General"][cnt][key] = str(gene_dict[key])
+                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+                        cnt += 1
+            print("cnt: ",index,"-",cnt)
         except Exception as e:
             print("getGenesFromLocation: ", e)
             foundGene = False
@@ -545,24 +565,27 @@ def processVCFRecord(record, index, nnewtable, value):
     except:
         print(traceback.format_exc())
     try:
+        cnt = 0
         if record.ALT:
             for i in record.ALT:
                 if len(str(i)) == 1 and len(str(record.REF)) == 1:
                     cadd_data = cadd.getSNV("GRCh37", mappedChr, mappedPos, record.REF, str(i))
                     if cadd_data and type(cadd_data) == list:
-                        for d in cadd_data:
-                            cadd_dict = {}
-                            for key in cadd.keys:
-                                if key in d:
-                                    cadd_dict[key.replace("-", " ").replace("_", " ")] = d[key]
-                                else:
-                                    cadd_dict[key] = "No data available"
-                            main_sub_dict[index]["Cadd"].append(cadd_dict)
+                        d = cadd_data[0]
+                        cadd_dict = {}
+                        for key in cadd.keys:
+                            if key in d:
+                                cadd_dict[key.replace("-", " ").replace("_", " ")] = d[key]
+                            else:
+                                cadd_dict[key] = ""
+                        main_sub_dict[index]["Cadd"].append(cadd_dict)
                     else:
                         temp1 = {}
                         for key2 in cadd.keys:
-                            temp1[key2] = "No data avilable"
+                            temp1[key2] = ""
                         main_sub_dict[index]["Cadd"].append(temp1)
+                    main_sub_dict[index]["General"][cnt]["Alternative Bases"] = str(i)
+                    cnt += 1
     except:
         print(traceback.format_exc())
     try:
@@ -579,8 +602,11 @@ def processVCFRecord(record, index, nnewtable, value):
     try:
 
         print("civic inner", record.ALT)
+        cnt = 0
         if record.ALT:
             for i in record.ALT:
+                if len(str(i)) != 1 or len(str(record.REF)) != 1:
+                    continue
                 civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos, str(record.REF), str(i)).copy()
                 if civicdata:
                     count = 0
@@ -614,10 +640,10 @@ def processVCFRecord(record, index, nnewtable, value):
                         html = var
                         CivicDict = {
                             "Variants": html if html else civic_variants_template,
-                            "Variant Groups": variant_groups if variant_groups else "No data available",
-                            "Genes": genehtml if genehtml else "No data avaliable",
-                            "Assertions": assertions if assertions else "No data available",
-                            "Clinical Evidences": clinical_significances if clinical_significances else "No data available",
+                            "Variant Groups": variant_groups if variant_groups else "",
+                            "Genes": genehtml if genehtml else "",
+                            "Assertions": assertions if assertions else "",
+                            "Clinical Evidences": clinical_significances if clinical_significances else "",
                         }
                         main_sub_dict[index]["Civic"].append(CivicDict)
                         count += 1
@@ -625,17 +651,22 @@ def processVCFRecord(record, index, nnewtable, value):
                     main_sub_dict[index]["Civic"].append(
                         {
                             "Variants": civic_variants_template,
-                            "Variant Groups": "No data available",
-                            "Genes": "No data available",
-                            "Assertions": "No data available",
-                            "Clinical Evidences": "No data available",
+                            "Variant Groups": "",
+                            "Genes": "",
+                            "Assertions": "",
+                            "Clinical Evidences": "",
                         }
                     )
+                main_sub_dict[index]["General"][cnt]["Alternative Bases"] = str(i)
+                cnt += 1
     except:
         print(traceback.format_exc())
     try:
+        cnt = 0
         if record.ALT:
             for i in record.ALT:
+                if len(str(i)) != 1 or len(str(record.REF)) != 1:
+                    continue
                 cosmicdata = cosmic.findVariantsFromLocation("GRCh37", mappedChr, mappedPos, str(record.REF), str(i))
                 if not cosmicdata:
                     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM,
@@ -659,7 +690,7 @@ def processVCFRecord(record, index, nnewtable, value):
                             if (key not in dictKeys.cosmicCMC):
                                 del row[key]
                             elif not row[key]:
-                                row[key] = "No data available"
+                                row[key] = ""
                             else:
                                 row[dictKeys.cosmicDesc(key)] = row[key]
                                 del row[key]
@@ -668,13 +699,13 @@ def processVCFRecord(record, index, nnewtable, value):
                             if key in row:
                                 temp[key] = row[key]
                             else:
-                                temp[key] = "No data available"
+                                temp[key] = ""
                         row = temp
                         variantData = json2html.convert(json=row, escape=False)
                         variantData = row
                         CosmicDict = {
                             "CMC": variantData if variantData else cosmic_CMC_template,
-                            "Resistance Mutations": resistanceMutations if resistanceMutations else "No data available"
+                            "Resistance Mutations": resistanceMutations if resistanceMutations else ""
                         }
                         main_sub_dict[index]["Cosmic"].append(CosmicDict)
                         count += 1
@@ -682,9 +713,11 @@ def processVCFRecord(record, index, nnewtable, value):
                     main_sub_dict[index]["Cosmic"].append(
                         {
                             "CMC": cosmic_CMC_template,
-                            "Resistance Mutations": "No data available"
+                            "Resistance Mutations": ""
                         }
                     )
+                main_sub_dict[index]["General"][cnt]["Alternative Bases"] = str(i)
+                cnt += 1
     except Exception as exp:
         print(index, "- variant exp: ", exp)
         print(traceback.format_exc())
@@ -700,26 +733,52 @@ def processVCFRecord(record, index, nnewtable, value):
                     main_sub_dict[index][key].append(
                         {
                             "CMC": cosmic_CMC_template,
-                            "Resistance Mutations": "No data available"
+                            "Resistance Mutations": ""
                         }
                     )
                 elif key == "Cadd":
                     temp1 = {}
                     for key2 in cadd.keys:
-                        temp1[key2] = "No data avilable"
+                        temp1[key2] = ""
                     main_sub_dict[index][key].append(temp1)
                 elif key == "Civic":
                     main_sub_dict[index][key].append(
                         {
                             "Variants": civic_variants_template,
-                            "Variant Groups": "No data available",
-                            "Genes": "No data available",
-                            "Assertions": "No data available",
-                            "Clinical Evidences": "No data available",
+                            "Variant Groups": "",
+                            "Genes": "",
+                            "Assertions": "",
+                            "Clinical Evidences": "",
                         }
                     )
                 else:
-                    main_sub_dict[index][key].append(main_sub_dict[index][key][0].copy())
+                    main_sub_dict[index][key].append({
+                    "Chromosome:":str(record.CHROM),
+                    "Position":str(record.POS),
+                    "Reference Bases":str(record.REF),
+                    "Alternative Bases":str(record.ALT),
+                    "Summary": "",
+                    "entrezgene": "",
+                    "contig": "",
+                    "strand": "",
+                    "start": "",
+                    "end": "",
+                    "genome": "",
+                    "biotype": "",
+                    "gene_id": "",
+                    "gene_name": "",
+                    "Expression": "",
+                    "clingen": "",
+                    "source":"",
+                    "id":"",
+                    "assembly_name":"",
+                    "description":"",
+                    "version":"",
+                    "seq_region_name":"",
+                    "feature_type":"",
+                    "external_name":"",
+                    "logic_name":""
+            })
     except:
         print(traceback.format_exc())
 
