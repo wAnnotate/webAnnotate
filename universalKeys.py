@@ -35,7 +35,7 @@ def civicDesc(key):  # Convert underscore to space and capitalize each word
 # COSMIC keys
 cosmicCMC = [
     "legacy_mutation_id",
-    "mutation description aa",
+    "mutation_description_aa",
     "cosmic_sample_tested",
     "cosmic_sample_mutated",
 ]
@@ -54,6 +54,13 @@ file = f.read().split("\n")
 for line in file:
     keyValue = line.split(" - ", 1)
     k = keyValue[0].lower()
+    tempK = ""
+    for letter in k:
+        if letter == " ":
+            tempK += "_"
+        else:
+            tempK += letter
+    k = tempK
     v = keyValue[1]
     v = v.split(" (", 1)[0].split(".", 1)[0].split(",", 1)[0]
     cosmicDescriptions[k] = v
