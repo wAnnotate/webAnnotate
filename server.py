@@ -525,7 +525,7 @@ def processVCFRecord(record, index, nnewtable, value):
                             if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
                                 if key in ensembl_keys:
                                     if key == "id":
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
                                     else:
                                         main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
                                 else:
@@ -551,7 +551,7 @@ def processVCFRecord(record, index, nnewtable, value):
                             if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
                                 if key in ensembl_keys:
                                     if key == "id":
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
                                     else:
                                         main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
                                 else:
