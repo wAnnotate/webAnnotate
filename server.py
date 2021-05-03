@@ -44,6 +44,16 @@ Session(app)
 biothingsAssembly = "hg19"
 tempSession = {}
 
+ensembl_keys = {
+    "strand":"Strand",
+    "id": "Gene Id",
+    "start": "Gene Start",
+    "end": "Gene End",
+    "description": "Gene Description",
+    "biotype": "Gene Type",
+    "external_name": "Gene Name"
+}
+
 
 @app.route("/")
 def index():
@@ -59,7 +69,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1000:
+    if "stamp" in session and time.time() - session["stamp"] > 1:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
@@ -70,14 +80,16 @@ def index():
 
 def getGeneInfo(gene_id, table):
     geneData = gene_client.getgene(gene_id)
-    if "Summary" not in geneData:
+    if type(geneData) == dict:
+        print(geneData.keys())
+    if "summary" not in geneData:
         table["Summary"] = ("")
     else:
-        table["Summary"] = (geneData["Summary"])
+        table["Summary"] = (geneData["summary"])
     if "entrezgene" not in geneData:
-        table["entrezgene"] = ("")
+        table["Entrezgene"] = ("")
     else:
-        table["entrezgene"] = ('<a target=\"_blank\" href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+        table["Entrezgene"] = ('<a target=\"_blank\" href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                % (geneData["entrezgene"], geneData["entrezgene"]))
     clinical_data = ""
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
@@ -89,7 +101,7 @@ def getGeneInfo(gene_id, table):
             for key in geneData["clingen"]["clinical_validity"]:
                 clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
                                                                  key["mondo"], key["online_report"], key["sop"]))
-    table["clingen"] = (clinical_data)
+    table["Clingen"] = (clinical_data)
 
 
 @app.route("/static/images/logom.png")
@@ -487,26 +499,16 @@ def processVCFRecord(record, index, nnewtable, value):
                     "Reference Bases":str(record.REF),
                     "Alternative Bases":str(i),
                     "Summary": "",
-                    "entrezgene": "",
-                    "contig": "",
-                    "strand": "",
-                    "start": "",
-                    "end": "",
-                    "genome": "",
+                    "Entrezgene": "",
+                    "Strand": "",
+                    "Gene Start": "",
+                    "Gene End": "",
                     "Gene Type": "",
-                    "gene_id": "",
-                    "gene_name": "",
+                    "Gene Name": "",
                     "Expression": "",
-                    "clingen": "",
-                    "source":"",
-                    "id":"",
-                    "assembly_name":"",
-                    "description":"",
-                    "version":"",
-                    "seq_region_name":"",
-                    "feature_type":"",
-                    "external_name":"",
-                    "logic_name":""
+                    "Gene Description":"",
+                    "Clingen": "",
+                    "Gene Id":"",
             })
     if record.ID and "rs" in record.ID:  # RsId exists
         # print("rsid exists")
@@ -520,11 +522,14 @@ def processVCFRecord(record, index, nnewtable, value):
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
                         getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
                         for key in gene_dict.keys():
-                            if key.lower() in list(main_sub_dict[index]["General"][cnt].keys()) or key.lower() == "biotype":
-                                if key.lower() == "biotype":
-                                    main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
+                            if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
+                                if key in ensembl_keys:
+                                    if key == "id":
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
+                                    else:
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
                                 else:
-                                    main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
+                                    main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
         except Exception as e:
@@ -541,13 +546,16 @@ def processVCFRecord(record, index, nnewtable, value):
             if record.ALT:
                 for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        getGeneInfo(gene_dict["id"] ,main_sub_dict[index]["General"][cnt])
+                        getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
                         for key in gene_dict.keys():
-                            if key.lower() in list(main_sub_dict[index]["General"][cnt].keys()) or key.lower() == "biotype":
-                                if key.lower() == "biotype":
-                                    main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
+                            if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
+                                if key in ensembl_keys:
+                                    if key == "id":
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
+                                    else:
+                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
                                 else:
-                                    main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
+                                    main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
         except Exception as e:
@@ -760,26 +768,16 @@ def processVCFRecord(record, index, nnewtable, value):
                     "Reference Bases":str(record.REF),
                     "Alternative Bases":str(record.ALT),
                     "Summary": "",
-                    "entrezgene": "",
-                    "contig": "",
-                    "strand": "",
-                    "start": "",
-                    "end": "",
-                    "genome": "",
+                    "Entrezgene": "",
+                    "Strand": "",
+                    "Gene Start": "",
+                    "Gene End": "",
                     "Gene Type": "",
-                    "gene_id": "",
-                    "gene_name": "",
+                    "Gene Name": "",
                     "Expression": "",
-                    "clingen": "",
-                    "source":"",
-                    "id":"",
-                    "assembly_name":"",
-                    "description":"",
-                    "version":"",
-                    "seq_region_name":"",
-                    "feature_type":"",
-                    "external_name":"",
-                    "logic_name":""
+                    "Gene Description":"",
+                    "Clingen": "",
+                    "Gene Id":"",
             })
     except:
         print(traceback.format_exc())
