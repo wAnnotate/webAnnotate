@@ -69,7 +69,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1:
+    if "stamp" in session and time.time() - session["stamp"] > 1000:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
