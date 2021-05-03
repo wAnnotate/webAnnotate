@@ -173,21 +173,21 @@
             {
                 extend: 'csv',
                 exportOptions: {
-                    columns: [...Array(44).keys()]
+                    columns: [...Array(35).keys()]
                 }
             },
             
             {
                 extend: 'excel',
                 exportOptions: {
-                    columns: [...Array(44).keys()]
+                    columns: [...Array(35).keys()]
                 }
             },
             
             {
                 extend: 'print',
                 exportOptions: {
-                    columns:[...Array(44).keys()]
+                    columns:[...Array(35).keys()]
                 }
             }
             ],
@@ -298,7 +298,7 @@
         }
     })
     function toggleModal(select){
-        let header = select.value.split("-").pop();
+        let header = select.value.split("|").pop();
         document.getElementById("modalHeader").innerText = header;
         document.getElementById("modalBody").innerHTML = popupdata[select.value];
         document.getElementById("myModal").style.display = "block";

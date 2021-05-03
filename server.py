@@ -413,7 +413,7 @@ def processVariantData(variant, count, hgsvs, index):
                         variant[key]["graph"] = """
                                                     <button onclick="showGraph('%s',this)">Show Graph</button>
                                                 """ % (key)
-                    varDict[key] = json2html.convert(json=variant[key])
+                    varDict[key] = json2html.convert(json=variant[key],escape=False)
                 elif type(variant[key]) == dict:
                     varDict[key] = {}
                     for key2 in variant[key]:
@@ -464,6 +464,8 @@ def formatDataForKeys(data, mainkeys, dictDescFunc):
                 del cs[key]
             else:
                 data = cs[key]
+                if "http" in data:
+                    data = '<a target="_blank" href="%s">%s</a>' % (data,data)
                 cs[dictDescFunc(key)] = data
                 del cs[key]
 
@@ -641,6 +643,8 @@ def processVCFRecord(record, index, nnewtable, value):
                                 continue
 
                             data = var[key]
+                            if "http" in data:
+                                data = '<a target="_blank" href="%s">%s</a>' % (data,data)
                             var[dictKeys.civicDesc(key)] = data
                             del var[key]
                         temp = {}
@@ -859,9 +863,9 @@ def getInnerAndHeaderHtmls(elements, key, popupdata):
         if "CIViC: Disease" in element:
             header = element["CIViC: Disease"]
         innerhtml += """
-                        <option value="%s-%s">%s</option>
+                        <option value="%s|%s">%s</option>
                      """ % (key, header, header)
-        popupdata[key + "-" + header] = json2html.convert(json=element)
+        popupdata[key + "|" + header] = json2html.convert(json=element,escape=False)
     innerhtmlselect = """<select onchange="toggleModal(this)">%s</select>
                       """ % (innerhtml)
     return innerhtmlselect
