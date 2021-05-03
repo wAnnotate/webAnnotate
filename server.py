@@ -469,13 +469,17 @@ def processVCFRecord(record, index, nnewtable, value):
             "Cadd": [],
         }
     }
-    civic_variants_template = {}
-    for key in dictKeys.civicVariants:
-        civic_variants_template[dictKeys.civicDesc(key)] = ""
-    cosmic_CMC_template = {}
-    for key in dictKeys.cosmicCMC:
-        cosmic_CMC_template[dictKeys.cosmicDesc(key)] = ""
-
+    try:
+        civic_variants_template = {}
+        for key in dictKeys.civicVariants:
+            civic_variants_template[dictKeys.civicDesc(key)] = ""
+        cosmic_CMC_template = {}
+        for key in dictKeys.cosmicCMC:
+            cosmic_CMC_template[dictKeys.cosmicDesc(key)] = ""
+    except:
+        traceback.print_exc()
+        return
+    print("after template")
     if record.ALT:
         for i in record.ALT:
             if len(str(i)) == 1 and len(str(record.REF)) == 1:
@@ -491,7 +495,7 @@ def processVCFRecord(record, index, nnewtable, value):
                     "start": "",
                     "end": "",
                     "genome": "",
-                    "biotype": "",
+                    "Gene Type": "",
                     "gene_id": "",
                     "gene_name": "",
                     "Expression": "",
@@ -513,15 +517,18 @@ def processVCFRecord(record, index, nnewtable, value):
             gene_dict = gene.__dict__
             foundGene = True
             cnt = 0
+            print("gene info:")
+            print(gene_dict)
             if record.ALT:
                 for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][cnt])
+                        getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
                         for key in gene_dict.keys():
-                            if key in list(main_sub_dict[index]["General"][cnt].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                           "variants", "listofvariants",
-                                           "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
-                                main_sub_dict[index]["General"][cnt][key] = str(gene_dict[key])
+                            if key.lower() in list(main_sub_dict[index]["General"][cnt].keys()) or key.lower() == "biotype":
+                                if key.lower() == "biotype":
+                                    main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
+                                else:
+                                    main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
             print("cnt: ",index,"-",cnt)
@@ -536,15 +543,18 @@ def processVCFRecord(record, index, nnewtable, value):
             gene_dict = gene[0].__dict__
             foundGene = True
             cnt = 0
+            print("gene info:")
+            print(gene_dict)
             if record.ALT:
                 for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        getGeneInfo(gene.gene_id, main_sub_dict[index]["General"][cnt])
+                        getGeneInfo(gene_dict["id"] ,main_sub_dict[index]["General"][cnt])
                         for key in gene_dict.keys():
-                            if key in list(main_sub_dict[index]["General"][cnt].keys()) and key in ["summary", "clingen", "entrezgene", "rowid", "expression",
-                                           "variants", "listofvariants",
-                                           "variantdata", " ", "listofvariantscivic", "listofvariantscosmic", "db"]:
-                                main_sub_dict[index]["General"][cnt][key] = str(gene_dict[key])
+                            if key.lower() in list(main_sub_dict[index]["General"][cnt].keys()) or key.lower() == "biotype":
+                                if key.lower() == "biotype":
+                                    main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
+                                else:
+                                    main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
             print("cnt: ",index,"-",cnt)
@@ -766,7 +776,7 @@ def processVCFRecord(record, index, nnewtable, value):
                     "start": "",
                     "end": "",
                     "genome": "",
-                    "biotype": "",
+                    "Gene Type": "",
                     "gene_id": "",
                     "gene_name": "",
                     "Expression": "",
