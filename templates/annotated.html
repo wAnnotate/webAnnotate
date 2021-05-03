@@ -243,8 +243,7 @@
                         <button class="btn btn-outline-primary" onclick="downloadObjectAsJson()">JSON</button>
                  `)
                  let count = 0;
-                 let cols = [4,5,6];
-                 /* 
+                 let cols = [12,11,2,8];
                  this.api().columns(cols).every(function () {
                      var column = this;
                      var select = $(`<select id="select${count}"><option value=""></option></select>`)
@@ -257,7 +256,6 @@
                             select.append('<option value="' + d + '">' + d + '</option>');
                      });
                  });
-                 */
              }
          })
 
@@ -373,11 +371,11 @@
                     <td id="s0"></td>
                 </tr>
                 <tr>
-                    <td>Biotype</td>
+                    <td>Gene Type</td>
                     <td id="s1"></td>
                 </tr>
                 <tr>
-                    <td>Contig</td>
+                    <td>Chromosome</td>
                     <td id="s2"></td>
                 </tr>
                 <tr>
