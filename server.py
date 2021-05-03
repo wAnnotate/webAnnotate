@@ -457,7 +457,6 @@ def formatDataForKeys(data, mainkeys, dictDescFunc):
 
 
 def processVCFRecord(record, index, nnewtable, value):
-    print("new record", value.value)
     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh37", record.CHROM, record.POS)
     foundGene = False
     gene_dict = {}
@@ -479,7 +478,6 @@ def processVCFRecord(record, index, nnewtable, value):
     except:
         traceback.print_exc()
         return
-    print("after template")
     if record.ALT:
         for i in record.ALT:
             if len(str(i)) == 1 and len(str(record.REF)) == 1:
@@ -517,8 +515,6 @@ def processVCFRecord(record, index, nnewtable, value):
             gene_dict = gene.__dict__
             foundGene = True
             cnt = 0
-            print("gene info:")
-            print(gene_dict)
             if record.ALT:
                 for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
@@ -531,7 +527,6 @@ def processVCFRecord(record, index, nnewtable, value):
                                     main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
-            print("cnt: ",index,"-",cnt)
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -543,8 +538,6 @@ def processVCFRecord(record, index, nnewtable, value):
             gene_dict = gene[0].__dict__
             foundGene = True
             cnt = 0
-            print("gene info:")
-            print(gene_dict)
             if record.ALT:
                 for i in record.ALT:
                     if len(str(i)) == 1 and len(str(record.REF)) == 1:
@@ -557,7 +550,6 @@ def processVCFRecord(record, index, nnewtable, value):
                                     main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
                         main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
-            print("cnt: ",index,"-",cnt)
         except Exception as e:
             print("getGenesFromLocation: ", e)
             foundGene = False
@@ -601,7 +593,6 @@ def processVCFRecord(record, index, nnewtable, value):
     except:
         print(traceback.format_exc())
     try:
-        print("hgsvs ", index)
         if record.ID:
             count, variantdata = getVariantData(record.ID, biothingsAssembly, index, count, hgsvs,
                                                 variantdata)
@@ -613,7 +604,6 @@ def processVCFRecord(record, index, nnewtable, value):
         print(traceback.format_exc())
     try:
 
-        print("civic inner", record.ALT)
         cnt = 0
         if record.ALT:
             for i in record.ALT:
@@ -697,6 +687,7 @@ def processVCFRecord(record, index, nnewtable, value):
                                     else:
                                         res[dictKeys.cosmicDesc(key)] = res[key]
                                         del res[key]
+                            row["legacy_mutation_id"] = "<a href=\"https://cancer.sanger.ac.uk/cosmic/search?q=%s\">%s</a>" % (row["legacy_mutation_id"],row["legacy_mutation_id"])
                         keys = list(row.keys())
                         for key in keys:
                             if (key not in dictKeys.cosmicCMC):
@@ -734,7 +725,6 @@ def processVCFRecord(record, index, nnewtable, value):
         print(index, "- variant exp: ", exp)
         print(traceback.format_exc())
     try:
-        print("-------")
         greatest_len = 0
         for key in ["Cosmic", "Civic", "Cadd", "General"]:
             if len(main_sub_dict[index][key]) > greatest_len:
