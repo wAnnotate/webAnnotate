@@ -69,7 +69,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1000:
+    if "stamp" in session and time.time() - session["stamp"] > 1:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
@@ -85,7 +85,17 @@ def getGeneInfo(gene_id, table):
     if "summary" not in geneData:
         table["Summary"] = ("")
     else:
-        table["Summary"] = (geneData["summary"])
+        tm = time.time()
+        table["Summary"] = """
+                <p>
+                %s
+                </p>
+                <a id="%s" href="javascript:toggleSummary('%s','%s')">
+                    Read More...
+                </a>
+        
+        """ % (geneData["summary"][:37],tm,geneData["summary"],tm)
+        
     if "entrezgene" not in geneData:
         table["Entrezgene"] = ("")
     else:

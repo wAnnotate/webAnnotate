@@ -43,6 +43,20 @@
         else
             selectedKeys.remove(checkbox.id);
     }
+
+    function toggleSummary(data,btn)
+    {
+        btn = document.getElementById(btn);
+        if(btn.innerText == "Read more..."){
+            btn.parentElement.firstElementChild.innerText = data;
+            btn.innerText = "hide"; 
+        }
+        else{
+            btn.parentElement.firstElementChild.innerText = data.substring(0,37);
+            btn.innerText = "Read more..."
+        }
+    }
+    
     function resetSubkeys(mainKeys, checkbox){
         if(!checkbox.checked)
             return;
