@@ -15,7 +15,7 @@ GENOMIC_WT_ALLELE_SEQ - Wild-type/reference allele in the genomic change (on the
 GENOMIC_MUT_ALLELE_SEQ - Mutant allele in the genomic change (on the forward strand)
 AA_WT_ALLELE_SEQ - Wild-type/reference amino acid in the peptide change
 AA_MUT_ALLELE_SEQ - Mutant amino acid in the peptide change
-Mutation Description CDS - Type of mutation at the nucloetide level
+Mutation Description CDS - Type of mutation at the nucleotide level
 Mutation Description AA - Type of mutation at the amino acid level
 ONTOLOGY_MUTATION_CODE - Sequence Ontology (SO) code for the mutation
 GENOMIC_MUTATION_ID - Genomic mutation identifier (COSV) to indicate the definitive position of the variant on the genome. This identifier is trackable and stable between different versions of the release

@@ -34,7 +34,10 @@ def civicDesc(key):  # Convert underscore to space and capitalize each word
 
 # COSMIC keys
 cosmicCMC = [
-    "mutation_url",
+    "legacy_mutation_id",
+    "mutation_description_aa",
+    "cosmic_sample_tested",
+    "cosmic_sample_mutated",
 ]
 cosmicResistanceMutations = [
     "Drug Name",

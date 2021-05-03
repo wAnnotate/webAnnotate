@@ -8,19 +8,14 @@ cmcExportTsvPath = "cosmic/cmc_export.tsv"
 cmcExportDbPath = "cosmic/sqlite/cmc_export.db"
 
 selectedColumns = [
-    "MUTATION_URL",
     "LEGACY_MUTATION_ID",
     "GENOMIC_WT_ALLELE_SEQ",
     "GENOMIC_MUT_ALLELE_SEQ",
-    "GENOMIC_MUTATION_ID",
+    "Mutation Description AA",
     "Mutation genome position GRCh37",
     "Mutation genome position GRCh38",
     "COSMIC_SAMPLE_TESTED",
-    "COSMIC_SAMPLE_MUTATED",
-    "GERP++_RS",
-    "MIN_SIFT_SCORE",
-    "MIN_SIFT_PRED",
-    "MUTATION_SIGNIFICANCE_TIER"
+    "COSMIC_SAMPLE_MUTATED"
 ]
 
 """
@@ -28,6 +23,7 @@ selectedColumns = [
                 //accession_number text,
                 //onc_tsg text,
                 //cgc_tier text,
+                //mutation_url text,
                 
                 //mutation_cds text,
                 //mutation_aa text,
@@ -38,8 +34,9 @@ selectedColumns = [
                 //aa_wt_allele_seq text,
                 //aa_mut_allele_seq text,
                 //mutation_description_cds text,
-                //mutation_description_aa text,
+                
                 //ontology_mutation_code text,
+                //genomic_mutation_id text,
                 
                 //disease text,
                 //wgs_disease text,
@@ -70,8 +67,11 @@ selectedColumns = [
                 //clinvar_clnsig integer,
                 //clinvar_trait text,
                 //clinvar_golden_stars integer,
-                
+                //gerp_rs real,
+                //min_sift_score real,
+                //min_sift_pred text,
                 //dnds_disease_qval text,
+                //mutation_significance_tier text,
 """
 
 
@@ -96,25 +96,20 @@ def createTables(connection):
     q1 = """ CREATE TABLE IF NOT EXISTS mutations (
                 id integer PRIMARY KEY,
                 
-                mutation_url text,
                 legacy_mutation_id text,
                 
                 genomic_wt_allele_seq text,
                 genomic_mut_allele_seq text,
                 
-                genomic_mutation_id text,
+                mutation_description_aa text,
+                
                 grch37_start integer NOT NULL,
                 grch37_stop integer NOT NULL,
                 grch38_start integer NOT NULL,
                 grch38_stop integer NOT NULL,
+                
                 cosmic_sample_tested integer,
                 cosmic_sample_mutated integer,
-                
-                gerp_rs real,
-                min_sift_score real,
-                min_sift_pred text,
-                
-                mutation_significance_tier text,
                 chr text NOT NULL
             ); """
     # q2 = """ CREATE TABLE IF NOT EXISTS locations (
@@ -132,8 +127,8 @@ def createTables(connection):
         print("Error!")
 
 
-def insertMutation(connection, mutationT):  # 58 \ 17 columns
-    query = """INSERT INTO mutations VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) """
+def insertMutation(connection, mutationT):  # 58 \ 12 columns
+    query = """INSERT INTO mutations VALUES(?,?,?,?,?,?,?,?,?,?,?,?) """
     cursor = connection.cursor()
     cursor.execute(query, mutationT)
 
@@ -156,6 +151,8 @@ def constructDb(conn, r, i):
             value = val[1]
         try:
             if val[0] == "Mutation genome position GRCh37":
+                if val[1] == "" or val[1] == " " or val[1] is None:
+                    raise ValueError
                 values = val[1].split(':')
                 chromosome = str(values[0])
                 values = values[1].split('-')
@@ -164,6 +161,8 @@ def constructDb(conn, r, i):
                 # locationTuple += (start, stop)
                 mutationTuple += (start, stop)
             elif val[0] == "Mutation genome position GRCh38":
+                if val[1] == "" or val[1] == " " or val[1] is None:
+                    raise ValueError
                 values = val[1].split(':')
                 chromosome = int(values[0])
                 values = values[1].split('-')
@@ -172,7 +171,7 @@ def constructDb(conn, r, i):
                 # locationTuple += (start, stop)
                 mutationTuple += (start, stop)
             elif val[0] in selectedColumns:
-                if val[1] == "" or " " in val[1] or val[1] is None:
+                if val[1] == "" or val[1] == " " or val[1] is None:
                     raise ValueError
                 else:
                     mutationTuple += (value,)
