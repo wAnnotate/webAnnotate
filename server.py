@@ -59,7 +59,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1:
+    if "stamp" in session and time.time() - session["stamp"] > 1000:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
@@ -77,7 +77,7 @@ def getGeneInfo(gene_id, table):
     if "entrezgene" not in geneData:
         table["entrezgene"] = ("")
     else:
-        table["entrezgene"] = ('<a href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
+        table["entrezgene"] = ('<a target=\"_blank\" href="https://www.ncbi.nlm.nih.gov/gene/%s">%s</a>'
                                % (geneData["entrezgene"], geneData["entrezgene"]))
     clinical_data = ""
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
@@ -525,7 +525,7 @@ def processVCFRecord(record, index, nnewtable, value):
                                     main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
                                 else:
                                     main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
-                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
         except Exception as e:
             print("getGeneFromRsId: ", e)
@@ -548,7 +548,7 @@ def processVCFRecord(record, index, nnewtable, value):
                                     main_sub_dict[index]["General"][cnt]["Gene Type"] = str(gene_dict["biotype"])
                                 else:
                                     main_sub_dict[index]["General"][cnt][key.lower()] = str(gene_dict[key.lower()])
-                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a href="/annotate/%s">Expression Graph</a>' % (index)
+                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
                         cnt += 1
         except Exception as e:
             print("getGenesFromLocation: ", e)
@@ -687,7 +687,7 @@ def processVCFRecord(record, index, nnewtable, value):
                                     else:
                                         res[dictKeys.cosmicDesc(key)] = res[key]
                                         del res[key]
-                            row["legacy_mutation_id"] = "<a href=\"https://cancer.sanger.ac.uk/cosmic/search?q=%s\">%s</a>" % (row["legacy_mutation_id"],row["legacy_mutation_id"])
+                            row["legacy_mutation_id"] = "<a target=\"_blank\" href=\"https://cancer.sanger.ac.uk/cosmic/search?q=%s\">%s</a>" % (row["legacy_mutation_id"],row["legacy_mutation_id"])
                         keys = list(row.keys())
                         for key in keys:
                             if (key not in dictKeys.cosmicCMC):
