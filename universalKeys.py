@@ -41,6 +41,10 @@ cosmicCMC = [
 ]
 cosmicResistanceMutations = [
     "Drug Name",
+    "Histology",
+    "Pubmed Id",
+    "Somatic Status",
+    "Zygosity",
 ]
 cosmicCGC = []
 cosmicHGNC = []
