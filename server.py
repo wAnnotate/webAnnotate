@@ -69,7 +69,7 @@ def index():
             if str(session["stamp"]) + "done" in tempSession:
                 del tempSession[str(session["stamp"]) + "done"]
             del session["stamp"]
-    if "stamp" in session and time.time() - session["stamp"] > 1000:
+    if "stamp" in session and time.time() - session["stamp"] > 1:
         if session["stamp"] in tempSession:
             del tempSession[session["stamp"]]
         if str(session["stamp"]) + "done" in tempSession:
@@ -80,8 +80,6 @@ def index():
 
 def getGeneInfo(gene_id, table):
     geneData = gene_client.getgene(gene_id)
-    if type(geneData) == dict:
-        print(geneData.keys())
     if "summary" not in geneData:
         table["Summary"] = ("")
     else:
@@ -90,11 +88,12 @@ def getGeneInfo(gene_id, table):
                 <p>
                 %s
                 </p>
-                <a id="%s" href="javascript:toggleSummary('%s','%s')">
+                <p class="%s" hidden>%s</p>
+                <a id="%s" href="javascript:toggleSummary('%s')">
                     Read More...
                 </a>
         
-        """ % (geneData["summary"][:37],tm,geneData["summary"],tm)
+        """ % (geneData["summary"][:37],tm,geneData["summary"],tm,tm)
         
     if "entrezgene" not in geneData:
         table["Entrezgene"] = ("")
@@ -504,23 +503,22 @@ def processVCFRecord(record, index, nnewtable, value):
         return
     if record.ALT:
         for i in record.ALT:
-            if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                main_sub_dict[index]["General"].append({
-                    "Chromosome":str(record.CHROM),
-                    "Position":str(record.POS),
-                    "Reference Bases":str(record.REF),
-                    "Alternative Bases":str(i),
-                    "Summary": "",
-                    "Entrezgene": "",
-                    "Strand": "",
-                    "Gene Start": "",
-                    "Gene End": "",
-                    "Gene Type": "",
-                    "Gene Name": "",
-                    "Expression": "",
-                    "Gene Description":"",
-                    "Clingen": "",
-                    "Gene Id":"",
+            main_sub_dict[index]["General"].append({
+                "Chromosome":str(record.CHROM),
+                "Position":str(record.POS),
+                "Reference Bases":str(record.REF),
+                "Alternative Bases":str(i),
+                "Summary": "",
+                "Entrezgene": "",
+                "Strand": "",
+                "Gene Start": "",
+                "Gene End": "",
+                "Gene Type": "",
+                "Gene Name": "",
+                "Expression": "",
+                "Gene Description":"",
+                "Clingen": "",
+                "Gene Id":"",
             })
     if record.ID and "rs" in record.ID:  # RsId exists
         # print("rsid exists")
@@ -531,19 +529,18 @@ def processVCFRecord(record, index, nnewtable, value):
             cnt = 0
             if record.ALT:
                 for i in record.ALT:
-                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
-                        for key in gene_dict.keys():
-                            if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
-                                if key in ensembl_keys:
-                                    if key == "id":
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
-                                    else:
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
+                    getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
+                    for key in gene_dict.keys():
+                        if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
+                            if key in ensembl_keys:
+                                if key == "id":
+                                    main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
                                 else:
-                                    main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
-                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
-                        cnt += 1
+                                    main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
+                            else:
+                                main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
+                    main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
+                    cnt += 1
         except Exception as e:
             print("getGeneFromRsId: ", e)
             foundGene = False
@@ -557,19 +554,18 @@ def processVCFRecord(record, index, nnewtable, value):
             cnt = 0
             if record.ALT:
                 for i in record.ALT:
-                    if len(str(i)) == 1 and len(str(record.REF)) == 1:
-                        getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
-                        for key in gene_dict.keys():
-                            if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
-                                if key in ensembl_keys:
-                                    if key == "id":
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
-                                    else:
-                                        main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
+                    getGeneInfo(gene_dict["id"], main_sub_dict[index]["General"][cnt])
+                    for key in gene_dict.keys():
+                        if key in list(main_sub_dict[index]["General"][cnt].keys()) or key in ensembl_keys:
+                            if key in ensembl_keys:
+                                if key == "id":
+                                    main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = "<a target=\"_blank\" href=\"https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=%s\">%s</a>" % (str(gene_dict[key]),str(gene_dict[key]))
                                 else:
-                                    main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
-                        main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
-                        cnt += 1
+                                    main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = str(gene_dict[key])
+                            else:
+                                main_sub_dict[index]["General"][cnt][key.replace("_"," ")] = str(gene_dict[key])
+                    main_sub_dict[index]["General"][cnt]["Expression"] = '<a target=\"_blank\" href="/annotate/%s">Expression Graph</a>' % (index)
+                    cnt += 1
         except Exception as e:
             print("getGenesFromLocation: ", e)
             foundGene = False
@@ -608,8 +604,11 @@ def processVCFRecord(record, index, nnewtable, value):
                         for key2 in cadd.keys:
                             temp1[key2] = ""
                         main_sub_dict[index]["Cadd"].append(temp1)
-                    main_sub_dict[index]["General"][cnt]["Alternative Bases"] = str(i)
-                    cnt += 1
+                else:
+                    temp1 = {}
+                    for key2 in cadd.keys:
+                        temp1[key2] = ""
+                    main_sub_dict[index]["Cadd"].append(temp1)
     except:
         print(traceback.format_exc())
     try:
@@ -627,12 +626,11 @@ def processVCFRecord(record, index, nnewtable, value):
         cnt = 0
         if record.ALT:
             for i in record.ALT:
-                if len(str(i)) != 1 or len(str(record.REF)) != 1:
-                    continue
                 civicdata = civic.findVariantsFromLocation(mappedChr, mappedPos, str(record.REF), str(i)).copy()
+                print("civic len",len(civicdata))
                 if civicdata:
                     count = 0
-                    for var in civicdata:
+                    for var in [civicdata[0]]:
                         variant_groups = formatListOfLists(civic.findVariantGroups(var["variant_groups"])).copy()
                         assertions = formatListOfLists(civic.findAssertions(var["variant_id"])).copy()
                         clinical_significances = formatListOfLists(
@@ -689,8 +687,6 @@ def processVCFRecord(record, index, nnewtable, value):
         cnt = 0
         if record.ALT:
             for i in record.ALT:
-                if len(str(i)) != 1 or len(str(record.REF)) != 1:
-                    continue
                 cosmicdata = cosmic.findVariantsFromLocation("GRCh37", mappedChr, mappedPos, str(record.REF), str(i))
                 if not cosmicdata:
                     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM,
@@ -698,7 +694,7 @@ def processVCFRecord(record, index, nnewtable, value):
                     cosmicdata = cosmic.findVariantsFromLocation("GRCh38", mappedChr, mappedPos)
                 if cosmicdata:
                     count = 0
-                    for row in cosmicdata:
+                    for row in [cosmicdata[0]]:
                         if "legacy_mutation_id" in row and row["legacy_mutation_id"]:
                             resistanceMutations = cosmic.findResistanceMutations(row["legacy_mutation_id"])
                             for res in resistanceMutations:
@@ -872,6 +868,8 @@ def getInnerAndHeaderHtmls(elements, key, popupdata):
         header = list(element.values())[0]
         if "CIViC: Disease" in element:
             header = element["CIViC: Disease"]
+        if "http" in header:
+            header = header.split("</")[0].split(">")[1]
         innerhtml += """
                         <option value="%s|%s">%s</option>
                      """ % (key, header, header)

@@ -44,16 +44,17 @@
             selectedKeys.remove(checkbox.id);
     }
 
-    function toggleSummary(data,btn)
+    function toggleSummary(btn)
     {
+        let data = document.getElementsByClassName(btn)[0].innerText; 
         btn = document.getElementById(btn);
-        if(btn.innerText == "Read more..."){
+        if(btn.innerText == "Read More..."){
             btn.parentElement.firstElementChild.innerText = data;
             btn.innerText = "hide"; 
         }
         else{
             btn.parentElement.firstElementChild.innerText = data.substring(0,37);
-            btn.innerText = "Read more..."
+            btn.innerText = "Read More..."
         }
     }
     
