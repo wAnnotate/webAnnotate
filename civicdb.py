@@ -81,7 +81,7 @@ class CivicDb:  # GRCh37 (Ensembl v75)
                 Id = row["variant_id"]
                 self.variants[Id] = row
 
-    def findVariantsFromLocation(self, chromosome, location, ref=None, alt=None):  # Returns array of variant dicts
+    def findVariantsFromLocation(self, chromosome, location, ref, alt):  # Returns array of variant dicts
         variants = []
         for v in self.variants.items():
             if "chromosome" in v[1] and "start" in v[1] and "stop" in v[1]:
@@ -91,13 +91,14 @@ class CivicDb:  # GRCh37 (Ensembl v75)
                 if v[1]["chromosome2"] == str(chromosome) and int(v[1]["start2"]) <= location <= int(v[1]["stop2"]):
                     variants.append(v[1])
 
-        if ref is not None and alt is not None:
-            for v in variants.copy():
-                if "reference_bases" in v and "variant_bases" in v:
-                    if v["reference_bases"] == ref and v["variant_bases"] == alt:
-                        return [v]
-                    if v["reference_bases"] != "" and v["variant_bases"] != "":
-                        variants.remove(v)
+        if len(variants) == 1:
+            return variants
+        for v in variants.copy():
+            if "reference_bases" in v and "variant_bases" in v:
+                if v["reference_bases"] == ref and v["variant_bases"] == alt:
+                    return [v]
+                if v["reference_bases"] != "" and v["variant_bases"] != "":
+                    variants.remove(v)
 
         return variants
 

@@ -39,7 +39,7 @@ cgcPath = "static/cosmicdb/cancer_gene_census.csv"
 
 
 def executeQueryOnline(query):
-    apikey = "1rDmswqZAo6oucxJuRwznLQFDW2"
+    apikey = "1rDCrlqK9J7OHXCeeaw9MauDQ5b"
     dbowner = "burakbozdag"
     dbname = "cmc_export.db"
     sql = base64.b64encode(query.encode("ascii")).decode("ascii")
@@ -115,7 +115,7 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
                 self.cgc[Id] = row
 
     @staticmethod
-    def findVariantsFromLocation(assembly, chr, pos, ref=None, alt=None):  # "GRCh37", "X", 100000, "A", "T"
+    def findVariantsFromLocation(assembly, chr, pos, ref, alt):  # "GRCh37", "X", 100000, "A", "T"
         chr = str(chr)
         pos = int(pos)
         if assembly == "GRCh37":
@@ -137,12 +137,11 @@ class CosmicDb:  # GRCh37 (Ensembl v75)
         if row_dict_list is None:
             return []
 
-        if ref is not None and alt is not None:
-            for rd in row_dict_list.copy():
-                if rd["genomic_wt_allele_seq"] == ref and rd["genomic_mut_allele_seq"] == alt:
-                    return [rd]
-                if rd["genomic_wt_allele_seq"] != "" and rd["genomic_mut_allele_seq"] != "":
-                    row_dict_list.remove(rd)
+        for rd in row_dict_list.copy():
+            if rd["genomic_wt_allele_seq"] == ref and rd["genomic_mut_allele_seq"] == alt:
+                return [rd]
+            if rd["genomic_wt_allele_seq"] != "" or rd["genomic_mut_allele_seq"] != "":
+                row_dict_list.remove(rd)
 
         return row_dict_list
 

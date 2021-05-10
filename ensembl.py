@@ -67,21 +67,44 @@ def getGenesFromLocation(chr, pos, db):
     return Exception("Select either 75 or 102.")
 
 
-def getVariantsFromLocation(chr, pos, db):
+def getVariantFromLocation(chr, pos, ref, alt, db):  # Returns dict, not object!
     """Retrieves features (e.g. genes, transcripts, variants and more) that overlap a given region.
 
     https://rest.ensembl.org/documentation/info/overlap_region
 
     :param chr Chromosome
     :param pos Position
-    :param db Genome version; 75 or 102"""
+    :param ref Reference
+    :param alt Alternative
+    :param db Genome version, 75 or 102"""
 
     ext = f"/overlap/region/human/{chr}:{pos}-{pos}?feature=variation"
     if db == 75:
-        return returner(server37 + ext)
+        url = server37 + ext
     elif db == 102:
-        return returner(server + ext)
-    return Exception("Select either 75 or 102.")
+        url = server + ext
+    else:
+        return Exception("Select either 75 or 102.")
+
+    r = requests.get(url, headers={"Content-Type": "application/json"})
+    if not r.ok:
+        return Exception("Not found.")
+    decoded = r.json()
+    if not decoded:
+        return Exception("Not found.")
+    if len(decoded) == 1:
+        return decoded[0]
+    if len(decoded) == 0:
+        return []
+
+    chr = str(chr)
+    pos = int(pos)
+    ref = str(ref)
+    alt = str(alt)
+    for v in decoded:
+        if v["start"] == pos and ref in v["alleles"] and alt in v["alleles"]:
+            return v
+    return []
 
 
 def getVEPFromId(varId):  # dbSNP, COSMIC, HGMD
@@ -113,11 +136,5 @@ def getVEPFromLocation(chr, pos, alt, db):
     return Exception("Select either 75 or 102.")
 
 
-"""genes = getGenesFromLocation(7, 140424943, 102)
-for gene in genes:
-    print(gene.__dict__)
-
-print()
-
-gene = getGeneFromGeneId("ENSG00000168137")
-print(gene.__dict__)"""
+"""variant = getVariantFromLocation("X", 47426121, "C", "G", 75)
+print(variant)"""

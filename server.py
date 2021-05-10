@@ -6,7 +6,7 @@ from io import BufferedReader, TextIOWrapper
 # import bs4
 import requests
 # from pyensembl import EnsemblRelease
-from ensembl import getGenesFromLocation, getGeneFromGeneId
+from ensembl import getGenesFromLocation, getGeneFromGeneId, getVariantFromLocation
 from biothings_client import get_client
 import json
 import os
@@ -691,7 +691,7 @@ def processVCFRecord(record, index, nnewtable, value):
                 if not cosmicdata:
                     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM,
                                                          record.POS)
-                    cosmicdata = cosmic.findVariantsFromLocation("GRCh38", mappedChr, mappedPos)
+                    cosmicdata = cosmic.findVariantsFromLocation("GRCh38", mappedChr, mappedPos, str(record.REF), str(i))
                 if cosmicdata:
                     count = 0
                     for row in [cosmicdata[0]]:
