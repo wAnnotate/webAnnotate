@@ -95,7 +95,7 @@ def getVariantFromLocation(chr, pos, ref, alt, db):  # Returns dict, not object!
     if len(decoded) == 1:
         return decoded[0]
     if len(decoded) == 0:
-        return []
+        return None
 
     chr = str(chr)
     pos = int(pos)
@@ -104,7 +104,7 @@ def getVariantFromLocation(chr, pos, ref, alt, db):  # Returns dict, not object!
     for v in decoded:
         if v["start"] == pos and ref in v["alleles"] and alt in v["alleles"]:
             return v
-    return []
+    return None
 
 
 def getVEPFromId(varId):  # dbSNP, COSMIC, HGMD

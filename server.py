@@ -51,7 +51,9 @@ ensembl_keys = {
     "end": "Gene End",
     "description": "Gene Description",
     "biotype": "Gene Type",
-    "external_name": "Gene Name"
+    "external_name": "Gene Name",
+    "mutation_description_aa": "Variant Type",
+    "consequence_type":"Variant Type"
 }
 
 
@@ -515,6 +517,7 @@ def processVCFRecord(record, index, nnewtable, value):
                 "Gene End": "",
                 "Gene Type": "",
                 "Gene Name": "",
+                "Variant Type": "",
                 "Expression": "",
                 "Gene Description":"",
                 "Clingen": "",
@@ -687,11 +690,13 @@ def processVCFRecord(record, index, nnewtable, value):
         cnt = 0
         if record.ALT:
             for i in record.ALT:
+                lastdb = 75
                 cosmicdata = cosmic.findVariantsFromLocation("GRCh37", mappedChr, mappedPos, str(record.REF), str(i))
                 if not cosmicdata:
                     mappedChr, mappedPos = mapping.remap(dbName[str(session["dbChoice"])], "GRCh38", record.CHROM,
                                                          record.POS)
                     cosmicdata = cosmic.findVariantsFromLocation("GRCh38", mappedChr, mappedPos, str(record.REF), str(i))
+                    lastdb = 102
                 if cosmicdata:
                     count = 0
                     for row in [cosmicdata[0]]:
@@ -708,6 +713,17 @@ def processVCFRecord(record, index, nnewtable, value):
                             row["legacy_mutation_id"] = "<a target=\"_blank\" href=\"https://cancer.sanger.ac.uk/cosmic/search?q=%s\">%s</a>" % (row["legacy_mutation_id"],row["legacy_mutation_id"])
                         keys = list(row.keys())
                         for key in keys:
+                            if key in ensembl_keys:
+                                if row[key]:
+                                    main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = row[key]
+                                else:
+                                    data = getVariantFromLocation(mappedChr,mappedPos,str(record.REF),str(i),lastdb)
+                                    if data:
+                                        print(data.keys())
+                                        for key in data:
+                                            if key in ensembl_keys and ensembl_keys[key] == "Variant Type":
+                                                main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = data[key]
+                                                break
                             if (key not in dictKeys.cosmicCMC):
                                 del row[key]
                             elif not row[key]:
@@ -731,6 +747,13 @@ def processVCFRecord(record, index, nnewtable, value):
                         main_sub_dict[index]["Cosmic"].append(CosmicDict)
                         count += 1
                 else:
+                    data = getVariantFromLocation(mappedChr,mappedPos,str(record.REF),str(i),lastdb)
+                    if data:
+                        for key in data:
+                            if key in ensembl_keys and ensembl_keys[key] == "Variant Type":
+                                print("Ensembl",data[key])
+                                main_sub_dict[index]["General"][cnt][ensembl_keys[key]] = data[key]
+                                break
                     main_sub_dict[index]["Cosmic"].append(
                         {
                             "CMC": cosmic_CMC_template,
@@ -784,6 +807,7 @@ def processVCFRecord(record, index, nnewtable, value):
                     "Gene End": "",
                     "Gene Type": "",
                     "Gene Name": "",
+                    "Variant Type": "",
                     "Expression": "",
                     "Gene Description":"",
                     "Clingen": "",
