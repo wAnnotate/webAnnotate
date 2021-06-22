@@ -839,6 +839,10 @@ def showresult():
             if "result" in session:
                 (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
                 session["table"] = nnewtable.copy()
+                try:
+                    print("processed rows: " , tempSession[str(session["stamp"]) + "count"] , ", time elapsed (seconds): " , time.time()-session["stamp"])
+                except:
+                    print("time exception")
                 return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys,
                                        subkeys=json.dumps(keys), allData=nnewtable, popupdata=popupdata)
             else:
@@ -849,6 +853,10 @@ def showresult():
     elif "result" in session:
         (newtablehtml, mainKeys, keys, nnewtable, popupdata) = session["result"]
         session["table"] = nnewtable.copy()
+        try:
+            print("processed rows: " , tempSession[str(session["stamp"]) + "count"] , ", time elapsed (seconds): " , time.time()-session["stamp"])
+        except:
+            print("time exception")
         return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
                                allData=nnewtable, popupdata=popupdata)
     print("lastresult")
