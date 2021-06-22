@@ -891,6 +891,8 @@ def getInnerAndHeaderHtmls(elements, key, popupdata):
         header = list(element.values())[0]
         if "CIViC: Disease" in element:
             header = element["CIViC: Disease"]
+        if "disease_label" in element:
+            header = element["disease_label"]
         if "http" in header:
             header = header.split("</")[0].split(">")[1]
         innerhtml += """
