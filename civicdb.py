@@ -1,12 +1,12 @@
 import csv
 
-assertionPath = "static/civicdb/01-Feb-2021-AssertionSummaries.tsv"
-clinicalEvidencePath = "static/civicdb/01-Feb-2021-ClinicalEvidenceSummaries.tsv"
-genePath = "static/civicdb/01-Feb-2021-GeneSummaries.tsv"
-variantGroupPath = "static/civicdb/01-Feb-2021-VariantGroupSummaries.tsv"
-variantPath = "static/civicdb/01-Feb-2021-VariantSummaries.tsv"
+assertionPath = "static/civicdb/nightly-AssertionSummaries.tsv"
+clinicalEvidencePath = "static/civicdb/nightly-ClinicalEvidenceSummaries.tsv"
+genePath = "static/civicdb/nightly-GeneSummaries.tsv"
+variantGroupPath = "static/civicdb/nightly-VariantGroupSummaries.tsv"
+variantPath = "static/civicdb/nightly-VariantSummaries.tsv"
 
-civicVcfPath = "static/civicdb/01-Feb-2021-civic_accepted_and_submitted.vcf"
+civicVcfPath = "static/civicdb/nightly-civic_accepted_and_submitted.vcf"
 
 
 class CivicDb:  # GRCh37 (Ensembl v75)
