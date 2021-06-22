@@ -29,6 +29,8 @@
             timeDiff /= 1000;
             document.getElementById("elapsedtimediv").style.display = "block";
             document.getElementById("elapsedtime").innerText = "Time Elapsed (seconds): " + String(timeDiff)
+            document.getElementById("rowsprocesseddiv").style.display = "block";
+            document.getElementById("rowsprocessed").innerText = "Rows Processed: " + String(json["rowsprocessed"])
             setTimeout(() => isresult(),1000);
           }
           else
@@ -94,6 +96,9 @@
 <progress id="fileprogress" value="0" max="100" style="display: none;"> 32% </progress>
 <div id="elapsedtimediv" style="display: none;" class="alert alert-success">
   <strong id="elapsedtime">Success!</strong>
+</div>
+<div id="rowsprocesseddiv" style="display: none;" class="alert alert-success">
+  <strong id="rowsprocessed">Success!</strong>
 </div>
     <form method="POST" action="/annotate" enctype="multipart/form-data">
         <div class="form-group row">

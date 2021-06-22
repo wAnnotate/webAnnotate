@@ -874,7 +874,11 @@ def isresult():
         if str(session["stamp"]) + "progress" in tempSession and str(session["stamp"]) + "count" in tempSession:
             progress = tempSession[str(session["stamp"]) + "progress"].value / tempSession[
                 str(session["stamp"]) + "count"] * 100
-    return Response(response=json.dumps({"status": 0, "progress": progress}))
+    return Response(response=json.dumps({
+        "status": 0, 
+        "progress": progress,
+        "rowsprocessed":tempSession[str(session["stamp"]) + "count"]
+        }))
 
 
 def addHeaderKeys(addedkeys, civickeys, itemkey, key, keycount, isdict=False):
