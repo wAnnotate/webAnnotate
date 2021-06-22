@@ -875,7 +875,7 @@ def isresult():
         if str(session["stamp"]) + "progress" in tempSession and str(session["stamp"]) + "count" in tempSession:
             progress = tempSession[str(session["stamp"]) + "progress"].value / tempSession[
                 str(session["stamp"]) + "count"] * 100
-            rowsprocessed = tempSession[str(session["stamp"]) + "count"]
+            rowsprocessed = tempSession[str(session["stamp"]) + "progress"].value
     return Response(response=json.dumps({
         "status": 0, 
         "progress": progress,
