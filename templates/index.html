@@ -1,6 +1,7 @@
 {% extends "main.html" %}
 {% block content %}
 <script>
+  var startTime = new Date();
   window.addEventListener("load", () => {
     fetch("/haveaprocess")
       .then(response => response.json())
@@ -23,6 +24,11 @@
             if(json["progress"]){
                 document.getElementById("fileprogress").value = String(json["progress"]);
             }
+            let endTime = new Date();
+            var timeDiff = endTime - startTime; 
+            timeDiff /= 1000;
+            document.getElementById("elapsedtimediv").style.display = "block";
+            document.getElementById("elapsedtime").innerText = "Time Elapsed (seconds): " + String(timeDiff)
             setTimeout(() => isresult(),1000);
           }
           else
@@ -86,6 +92,9 @@
 </style>
 <label for="fileprogress" style="font-size: large;">Processing progress:</label>
 <progress id="fileprogress" value="0" max="100" style="display: none;"> 32% </progress>
+<div id="elapsedtimediv" style="display: none;" class="alert alert-success">
+  <strong id="elapsedtime">Success!</strong>
+</div>
     <form method="POST" action="/annotate" enctype="multipart/form-data">
         <div class="form-group row">
             <label class="col-sm-2 col-form-label" for="file">File:</label>
