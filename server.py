@@ -104,14 +104,12 @@ def getGeneInfo(gene_id, table):
                                % (geneData["entrezgene"], geneData["entrezgene"]))
     clinical_data = ""
     if "clingen" in geneData and "clinical_validity" in geneData["clingen"]:
-        clinical_data = ""
+        clinical_data = []
         if type(geneData["clingen"]["clinical_validity"]) == dict:
-            for key in geneData["clingen"]["clinical_validity"]:
-                clinical_data += ('<p>%s</p>' % geneData["clingen"]["clinical_validity"][key])
+            clinical_data.append(geneData["clingen"]["clinical_validity"])
         elif type(geneData["clingen"]["clinical_validity"]) == list:
             for key in geneData["clingen"]["clinical_validity"]:
-                clinical_data += ('<p>%s, %s, %s, %s, %s</p>' % (key["classification"], key["disease_label"],
-                                                                 key["mondo"], key["online_report"], key["sop"]))
+                clinical_data.append(key)
     table["Clingen"] = (clinical_data)
 
 
