@@ -23,14 +23,14 @@
           if(!json["status"]){
             if(json["progress"]){
                 document.getElementById("fileprogress").value = String(json["progress"]);
+                document.getElementById("rowsprocesseddiv").style.display = "block";
+                document.getElementById("rowsprocessed").innerText = "Rows Processed: " + String(json["rowsprocessed"])
             }
             let endTime = new Date();
             var timeDiff = endTime - startTime; 
             timeDiff /= 1000;
             document.getElementById("elapsedtimediv").style.display = "block";
             document.getElementById("elapsedtime").innerText = "Time Elapsed (seconds): " + String(timeDiff)
-            document.getElementById("rowsprocesseddiv").style.display = "block";
-            document.getElementById("rowsprocessed").innerText = "Rows Processed: " + String(json["rowsprocessed"])
             setTimeout(() => isresult(),1000);
           }
           else
