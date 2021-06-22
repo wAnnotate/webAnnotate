@@ -832,6 +832,7 @@ def showresult():
             (newtablehtml, mainKeys, keys, nnewtable, popupdata) = tempSession[session["stamp"]]
             session["result"] = tempSession[session["stamp"]]
             session["table"] = nnewtable.copy()
+            print("processed rows: " , tempSession[str(session["stamp"]) + "count"] , ", time elapsed (seconds): " , time.time()-session["stamp"])
             return render_template("annotated.html", table=newtablehtml, mainKeys=mainKeys, subkeys=json.dumps(keys),
                                    allData=nnewtable, popupdata=popupdata)
         except:
