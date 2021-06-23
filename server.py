@@ -25,6 +25,7 @@ from collections import OrderedDict
 import threading
 
 app = Flask(__name__)
+app.config['JSON_SORT_KEYS'] = False
 app.secret_key = b'\xdd\xd6]j\xb0\xcc\xe3mNF{\x14\xaf\xa7\xb3\x18'
 dbs = (102, 75, 54)
 dbName = {
