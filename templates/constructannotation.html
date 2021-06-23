@@ -8,6 +8,15 @@
 	font-size:16px;
 }
 </style>
+<script>
+  window.addEventListener("load",()=>{
+    let Alert = "{{alert|safe}}";
+    if(Alert)
+      setTimeout(() => {
+        alert(Alert);
+      }, 200); 
+  })
+</script>
     <form method="POST" action="/constructannotation" enctype="multipart/form-data">
         <div class="form-group row">
             <label class="col-sm-2 col-form-label" for="file">File:</label>

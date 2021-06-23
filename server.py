@@ -123,15 +123,27 @@ def logo():
 
 @app.route("/constructannotation", methods=["GET"])
 def constructannotationGet():
-    return render_template("constructannotation.html")
+    return render_template("constructannotation.html",alert="")
 
 
 @app.route("/constructannotation", methods=["POST"])
 def constructannotation():
     file = request.files["efile"]
+    print(file.name)
+    if not file.filename.endswith(".json"):
+        return render_template(
+            "/constructannotation.html",
+            alert = "File extension not matching"
+            )
     #file = BufferedReader(file)
     #file = TextIOWrapper(file)
-    nnewtable = json.load(file)
+    try:
+        nnewtable = json.load(file)
+    except:
+        return render_template(
+            "/constructannotation.html",
+            alert="Corrupted file"
+            )
     temp = {}
     keys = ["General","Civic","Cosmic","Cadd"]
     for key in nnewtable:
