@@ -31,7 +31,7 @@
             timeDiff /= 1000;
             document.getElementById("elapsedtimediv").style.display = "block";
             document.getElementById("elapsedtime").innerText = "Time Elapsed (seconds): " + String(timeDiff)
-            setTimeout(() => isresult(),1000);
+            setTimeout(() => isresult(),100);
           }
           else
             window.location = "/showresult"
@@ -99,6 +99,13 @@
 #fileprogress:before {
         content: 'Value is ' attr(value);
     }
+progress {
+  text-align: center;
+}
+progress:after {
+  content: attr(value)'%';
+  color: green;
+}
 </style>
 <label for="fileprogress" style="font-size: large;">Processing progress:</label>
 <progress id="fileprogress" value="0" max="100" style="display: none;"> 32% </progress>
